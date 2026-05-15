@@ -1,8 +1,8 @@
 {
   "$schema": "https://opencode.ai/config.json",
 
-  "model": "anthropic/claude-sonnet-4-20250514",
-  "small_model": "anthropic/claude-haiku-4-20250514",
+  "model": "opencode/claude-sonnet-4",
+  "small_model": "opencode/claude-haiku-4-5",
 
   "default_agent": "issue-orchestrator",
 
@@ -103,11 +103,7 @@
       "git push *": "deny",
       "git commit *": "ask"
     },
-    "webfetch": {
-      "*": "ask",
-      "https://nvd.nist.gov/*": "allow",
-      "https://github.com/*": "allow"
-    },
+    "webfetch": "ask",
     "task": {
       "*": "ask",
       "review-agent": "allow",
@@ -125,7 +121,7 @@
     "issue-orchestrator": {
       "description": "Primary orchestrator: reads GitHub issues as source of truth, delegates to specialized subagents, enforces spec-driven workflow and evidence gates. Never implements directly — always delegates.",
       "mode": "primary",
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/claude-sonnet-4",
       "temperature": 0.1,
       "color": "#2563eb",
       "permission": {
@@ -162,7 +158,7 @@
 
     "plan": {
       "mode": "primary",
-      "model": "anthropic/claude-haiku-4-20250514",
+      "model": "opencode/claude-haiku-4-5",
       "temperature": 0.0,
       "permission": {
         "edit": "deny",
@@ -183,7 +179,7 @@
 
     "build": {
       "mode": "primary",
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/claude-sonnet-4",
       "temperature": 0.2,
       "permission": {
         "edit": "ask",
@@ -208,7 +204,7 @@
     "review-agent": {
       "description": "Reviews code for quality, security, performance, and spec compliance. Read-only — never modifies files.",
       "mode": "subagent",
-      "model": "anthropic/claude-haiku-4-20250514",
+      "model": "opencode/claude-haiku-4-5",
       "temperature": 0.0,
       "permission": {
         "edit": "deny",
@@ -233,7 +229,7 @@
     "research-agent": {
       "description": "Researches external documentation, CVEs, and dependency info using Brave Search and Context7. Read-only.",
       "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/claude-sonnet-4",
       "temperature": 0.2,
       "permission": {
         "edit": "deny",
@@ -242,11 +238,7 @@
           "grep *": "allow",
           "rg *": "allow"
         },
-        "webfetch": {
-          "*": "ask",
-          "https://nvd.nist.gov/*": "allow",
-          "https://github.com/advisories/*": "allow"
-        },
+        "webfetch": "ask",
         "skill": {
           "security-evidence-gate": "allow",
           "*": "deny"
@@ -261,7 +253,7 @@
     "compliance-agent": {
       "description": "Audits GDPR/DSGVO compliance, data minimization, and consent validation. Read-only for canonical data.",
       "mode": "subagent",
-      "model": "anthropic/claude-haiku-4-20250514",
+      "model": "opencode/claude-haiku-4-5",
       "temperature": 0.0,
       "permission": {
         "edit": "deny",
@@ -282,7 +274,7 @@
     "migration-agent": {
       "description": "Validates database migrations: schema changes, rollback safety, data integrity. Limited write access.",
       "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/claude-sonnet-4",
       "temperature": 0.0,
       "permission": {
         "edit": {
@@ -312,7 +304,7 @@
     "playwright-agent": {
       "description": "Executes visual regression tests via Playwright: screenshots, DOM snapshots, accessibility checks.",
       "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/claude-sonnet-4",
       "temperature": 0.1,
       "permission": {
         "edit": {
@@ -338,7 +330,7 @@
     "architecture-agent": {
       "description": "Reviews architecture decisions, dependency graphs, and coupling. Read-only, produces ADRs.",
       "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/claude-sonnet-4",
       "temperature": 0.1,
       "permission": {
         "edit": {
@@ -363,7 +355,7 @@
     "security-agent": {
       "description": "Security research: PoC reproduction, vulnerability validation, CVSS scoring. Evidence-gated — no finding without proof.",
       "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/claude-sonnet-4",
       "temperature": 0.0,
       "permission": {
         "edit": {
@@ -398,7 +390,7 @@
     "documentation-agent": {
       "description": "Generates and maintains documentation, wiki pages, and release notes. Write access to docs/ only.",
       "mode": "subagent",
-      "model": "anthropic/claude-haiku-4-20250514",
+      "model": "opencode/claude-haiku-4-5",
       "temperature": 0.2,
       "permission": {
         "edit": {

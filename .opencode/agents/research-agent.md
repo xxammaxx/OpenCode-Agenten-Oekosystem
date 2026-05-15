@@ -8,10 +8,7 @@ permission:
     "grep *": allow
     "rg *": allow
     "*": deny
-  webfetch:
-    "https://nvd.nist.gov/*": allow
-    "https://github.com/advisories/*": allow
-    "*": ask
+  webfetch: ask
   skill:
     "security-evidence-gate": allow
     "*": deny

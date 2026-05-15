@@ -5,56 +5,56 @@
   "routing_rules": [
     {
       "task_pattern": ["code review", "lint", "typecheck"],
-      "model": "anthropic/claude-haiku-4-20250514",
+      "model": "opencode/claude-haiku-4-5",
       "local_fallback": "ollama/gemma3:12b",
       "temperature": 0.0,
       "max_tokens": 4096
     },
     {
       "task_pattern": ["implement", "refactor", "security research", "security scan"],
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/claude-sonnet-4",
       "local_fallback": "ollama/qwen2.5:14b",
       "temperature": 0.1,
       "max_tokens": 8192
     },
     {
       "task_pattern": ["architecture", "planning", "specification", "design"],
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/claude-sonnet-4",
       "local_fallback": null,
       "temperature": 0.1,
       "max_tokens": 8192
     },
     {
       "task_pattern": ["documentation", "release notes", "changelog", "README"],
-      "model": "anthropic/claude-haiku-4-20250514",
+      "model": "opencode/claude-haiku-4-5",
       "local_fallback": "ollama/gemma3:12b",
       "temperature": 0.2,
       "max_tokens": 4096
     },
     {
       "task_pattern": ["compliance check", "dsgvo audit", "data protection"],
-      "model": "anthropic/claude-haiku-4-20250514",
+      "model": "opencode/claude-haiku-4-5",
       "local_fallback": "ollama/gemma3:12b",
       "temperature": 0.0,
       "max_tokens": 4096
     },
     {
       "task_pattern": ["visual qa", "screenshot analysis", "playwright"],
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/claude-sonnet-4",
       "local_fallback": "ollama/qwen2.5:14b",
       "temperature": 0.1,
       "max_tokens": 4096
     },
     {
       "task_pattern": ["migration", "database", "schema change"],
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/claude-sonnet-4",
       "local_fallback": null,
       "temperature": 0.0,
       "max_tokens": 8192
     },
     {
       "task_pattern": ["funding proposal", "funding document"],
-      "model": "anthropic/claude-haiku-4-20250514",
+      "model": "opencode/claude-haiku-4-5",
       "local_fallback": "ollama/gemma3:12b",
       "temperature": 0.3,
       "max_tokens": 8192
