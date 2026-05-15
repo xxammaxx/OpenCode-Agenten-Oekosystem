@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "description": "MCP server trust tier classification defining access levels, restrictions, and security constraints",
+
+  "tiers": {
+    "0_readonly": {
+      "description": "Readonly: no write access, no filesystem access, no shell. For external queries and documentation.",
+      "allowed_tools_pattern": ["*_search*", "*_read*", "*_query*", "*_get*", "*_list*"],
+      "blocked_tools_pattern": ["*_write*", "*_create*", "*_delete*", "*_update*", "*_execute*", "*_push*"],
+      "network_access": "restricted_to_remote_url",
+      "filesystem_access": "none",
+      "response_validation": {
+        "max_size_bytes": 102400,
+        "strip_html": true,
+        "validate_against_schema": false,
+        "log_all_responses": false
+      },
+      "servers": ["github", "brave-search", "context7", "gh_grep"]
+    },
+    "1_sandboxed": {
+      "description": "Sandboxed: write access within project boundaries, container isolation, limited network.",
+      "allowed_tools_pattern": ["*"],
+      "blocked_tools_pattern": ["*_delete_production*", "*_drop_production*", "*_exec_host*"],
+      "network_access": "localhost_only",
+      "filesystem_access": "project_and_tmp_only",
+      "resource_limits": {
+        "max_memory_mb": 512,
+        "max_cpu_percent": 50,
+        "timeout_ms": 60000,
+        "max_containers": 3
+      },
+      "docker_constraints": {
+        "read_only_root": true,
+        "no_new_privileges": true,
+        "network_mode": "none",
+        "allowed_images": ["node:*-slim", "python:*-slim", "alpine:*", "playwright:*", "mcr.microsoft.com/playwright:*"],
+        "cap_drop": ["ALL"],
+        "security_opt": ["no-new-privileges"]
+      },
+      "servers": ["playwright", "docker", "sqlite"]
+    },
+    "2_trusted": {
+      "description": "Trusted: full write access but requires human approval gate and mandatory audit logging.",
+      "allowed_tools_pattern": ["*"],
+      "blocked_tools_pattern": ["*_delete_production*", "*_drop_production*"],
+      "network_access": "as_configured",
+      "filesystem_access": "whitelist_only",
+      "required_approval": "human_gate",
+      "audit_required": true,
+      "servers": ["filesystem", "postgresql"]
+    }
+  },
+
+  "runtime_validation": {
+    "enforce_tool_name_pattern": true,
+    "check_tool_tier_before_invoke": true,
+    "block_on_tier_violation": true,
+    "alert_on_violation": "audit_log"
+  },
+
+  "default_tier_for_unknown": "0_readonly"
+}

@@ -1,0 +1,39 @@
+You are in Compliance Check mode. Perform a DSGVO/GDPR compliance audit:
+
+## Data Minimization (Art. 5(1)(c))
+- Are all stored PII fields necessary and documented?
+- Is there a legal basis for each field?
+- Can any field be removed?
+
+## Consent (Art. 7)
+- Is consent granular (marketing ≠ medical ≠ contact)?
+- Is consent withdrawal as easy as giving consent?
+- Are consent records timestamped and traceable?
+
+## Retention (Art. 5(1)(e))
+- Are retention periods defined per entity?
+- Is automated cleanup scheduled?
+- Are there retention violations (data kept too long)?
+
+## Rights of Data Subjects (Art. 15-17, 20)
+- Can users request their data (Art. 15)?
+- Can users request deletion (Art. 17)?
+- Is deletion actually tested and working?
+- Is data portability supported (Art. 20)?
+
+## Data Processing (Art. 28, 30)
+- Is there a processing activity register?
+- Are data processing agreements in place for all processors?
+- Is AI processing documented (model, version, purpose)?
+
+## Security (Art. 32)
+- Is data encrypted at rest and in transit?
+- Is access control properly implemented?
+- Are there regular security assessments?
+
+## Output
+Produce compliance report with:
+- Per-article compliance status (COMPLIANT / PARTIAL / NON_COMPLIANT)
+- Specific violations with remediation steps
+- Risk classification
+- Recommended timeline for fixes

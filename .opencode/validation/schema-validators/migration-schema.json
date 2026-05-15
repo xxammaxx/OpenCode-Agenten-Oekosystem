@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Database Migration Schema",
+  "type": "object",
+  "required": ["version", "description", "migration_sql"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d{14}$",
+      "description": "Migration version as YYYYMMDDHHMMSS"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 200
+    },
+    "migration_sql": {
+      "type": "string",
+      "description": "The SQL migration statements"
+    },
+    "rollback_sql": {
+      "type": "string",
+      "description": "SQL to reverse this migration"
+    },
+    "affected_tables": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "is_blocking": {
+      "type": "boolean",
+      "description": "Does this migration lock tables?"
+    },
+    "data_migration": {
+      "type": "boolean",
+      "description": "Does this migration modify data?"
+    },
+    "tested_on": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rollback_tested": {
+      "type": "boolean"
+    }
+  }
+}

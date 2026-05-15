@@ -1,0 +1,55 @@
+# Migration Run Workflow
+name: migration-run
+description: Safe database migration execution
+
+phases:
+  - name: pre_flight
+    description: Validate migration safety
+    agent: migration-agent
+    skill: migration-review
+    checks:
+      - schema validation
+      - rollback exists
+      - affected tables identified
+      - index impact assessed
+
+  - name: dry_run
+    description: Test migration on staging
+    agent: migration-agent
+    environment: staging/test database
+    steps:
+      - apply migration
+      - test application queries
+      - measure performance
+      - execute rollback
+      - verify original state restored
+    gate: rollback_must_restore_original_state
+
+  - name: human_gate
+    description: Human approval required
+    type: manual_approval
+    required_evidence:
+      - dry_run_passed
+      - rollback_tested
+      - backup_confirmed
+      - data_integrity_verified
+
+  - name: production
+    description: Execute on production
+    agent: human
+    note: AI never executes production migrations autonomously
+
+  - name: verify
+    description: Post-migration verification
+    agent: migration-agent
+    checks:
+      - schema version updated
+      - row counts match
+      - foreign keys valid
+      - application queries working
+      - no errors in logs
+
+skills_required:
+  - migration-review
+  - test-enforcement
+  - audit-trail-enforcer

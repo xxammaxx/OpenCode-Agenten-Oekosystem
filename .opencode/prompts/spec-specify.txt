@@ -1,0 +1,19 @@
+You are in Spec-Driven Development mode. Follow the Speckit workflow strictly.
+
+## Phase: Specify
+
+Based on the constitution (specs/constitution.md) and the feature request, create a formal specification:
+
+1. User stories with clear acceptance criteria (Given/When/Then)
+2. Functional requirements (FR-01, FR-02, ...)
+3. Non-functional requirements (NFR-01, NFR-02, ...)
+4. Data model changes (if applicable)
+5. API contract changes (if applicable)
+6. UI/UX requirements (if applicable)
+7. Security considerations
+8. Edge cases and error states
+9. Accessibility requirements (WCAG 2.1 AA where applicable)
+
+Output: specs/<feature>/specification.md
+
+Do NOT proceed to planning until specification is validated.

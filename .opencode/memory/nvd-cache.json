@@ -1,0 +1,6 @@
+{
+  "version": "1.0.0",
+  "description": "NVD CVE lookup cache (24h TTL)",
+  "last_updated": null,
+  "entries": {}
+}

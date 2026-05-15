@@ -1,0 +1,38 @@
+name: OpenCode Weekly Audit
+on:
+  schedule:
+    - cron: "0 8 * * 1"  # Every Monday 08:00 UTC
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  weekly-audit:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: anomalyco/opencode/github@latest
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          model: anthropic/claude-sonnet-4-20250514
+          agent: compliance-agent
+          prompt: |
+            Weekly compliance and security audit:
+            1. Load tierheim-compliance and audit-trail-enforcer skills
+            2. Review all PRs merged in the last 7 days for:
+               - DSGVO data field changes
+               - New PII collection points
+               - Retention policy violations
+               - Security-sensitive code changes
+            3. Run dependency security check (npm audit)
+            4. Verify SECURITY.md is current
+            5. Create audit report in .opencode/reports/compliance/
+            6. Open GitHub Issue for any findings requiring action
+            7. Do NOT modify any code — only report findings.

@@ -1,0 +1,103 @@
+{
+  "version": "1.0.0",
+  "description": "Write protection rules defining which operations require human approval, and which are denied entirely.",
+
+  "human_gate_required": {
+    "description": "These operations always require explicit human approval before execution",
+    "rules": [
+      {
+        "pattern": "git push *",
+        "reason": "Prevent accidental remote pushes"
+      },
+      {
+        "pattern": "gh issue close *",
+        "reason": "Prevent AI from closing issues autonomously"
+      },
+      {
+        "pattern": "gh pr merge *",
+        "reason": "Prevent AI from merging PRs autonomously"
+      },
+      {
+        "pattern": "docker compose -f *prod* up *",
+        "reason": "Prevent production deployment"
+      },
+      {
+        "pattern": "npm publish *",
+        "reason": "Prevent package publishing"
+      },
+      {
+        "pattern": "git tag *",
+        "reason": "Prevent release tagging"
+      }
+    ]
+  },
+
+  "deny_always": {
+    "description": "These operations are always denied for AI agents",
+    "rules": [
+      {
+        "pattern": "rm -rf *",
+        "reason": "Destructive deletion"
+      },
+      {
+        "pattern": "git push --force *",
+        "reason": "Force push can lose history"
+      },
+      {
+        "pattern": "DROP TABLE *",
+        "reason": "Destructive database operation"
+      },
+      {
+        "pattern": "DELETE FROM * WHERE 1=1",
+        "reason": "Bulk data deletion"
+      },
+      {
+        "pattern": "format *:",
+        "reason": "Disk formatting"
+      },
+      {
+        "pattern": "docker rm -f *",
+        "reason": "Force remove running containers"
+      },
+      {
+        "pattern": "chmod 777 *",
+        "reason": "Insecure permissions"
+      }
+    ]
+  },
+
+  "production_data": {
+    "description": "Production database operations always require human gate",
+    "rules": [
+      {
+        "pattern": "*production*",
+        "action": "require_human_approval"
+      },
+      {
+        "pattern": "*prod_db*",
+        "action": "require_human_approval"
+      }
+    ]
+  },
+
+  "file_protection": {
+    "description": "Files that agents may never modify",
+    "never_edit": [
+      "opencode.jsonc",
+      "opencode.json",
+      ".opencode/policies/*.json",
+      ".opencode/agents/*.md",
+      ".github/workflows/*.yml",
+      "SECURITY.md",
+      "LICENSE"
+    ],
+    "require_human": [
+      "package.json",
+      "Dockerfile",
+      "docker-compose.yml",
+      "docker-compose.prod.yml",
+      ".env.example",
+      "README.md"
+    ]
+  }
+}

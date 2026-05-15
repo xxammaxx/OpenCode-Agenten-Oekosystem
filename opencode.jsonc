@@ -1,0 +1,419 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-haiku-4-20250514",
+
+  "default_agent": "issue-orchestrator",
+
+  "share": "disabled",
+  "autoupdate": false,
+  "snapshot": true,
+
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 8000
+  },
+
+  "formatter": {
+    "prettier": { "disabled": false }
+  },
+
+  "shell": "pwsh",
+
+  "instructions": [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    ".opencode/policies/evidence-gates.json",
+    ".opencode/policies/mcp-trust-tiers.json",
+    ".opencode/policies/write-protection.json",
+    ".opencode/policies/data-retention.json",
+    ".opencode/policies/model-routing.json"
+  ],
+
+  "provider": {
+    "ollama": {
+      "baseURL": "http://localhost:11434/v1",
+      "apiKey": "ollama"
+    }
+  },
+
+  "mcp": {
+    "github": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": { "Authorization": "Bearer {env:GITHUB_TOKEN}" },
+      "enabled": false
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@anthropic/mcp-server-playwright"],
+      "enabled": false,
+      "timeout": 30000
+    },
+    "docker": {
+      "type": "local",
+      "command": ["npx", "-y", "@anthropic/mcp-server-docker"],
+      "enabled": false
+    },
+    "sqlite": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-sqlite"],
+      "args": ["{env:PROJECT_ROOT}/data/local.db"],
+      "enabled": false
+    },
+    "brave-search": {
+      "type": "remote",
+      "url": "https://mcp.search.brave.com/mcp",
+      "headers": { "X-Subscription-Token": "{env:BRAVE_API_KEY}" },
+      "enabled": false
+    },
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "enabled": false
+    }
+  },
+
+  "tools": {
+    "github_*": false,
+    "playwright_*": false,
+    "docker_*": false,
+    "sqlite_*": false,
+    "brave-search_*": false,
+    "context7_*": false
+  },
+
+  "permission": {
+    "edit": "ask",
+    "bash": {
+      "*": "ask",
+      "git status *": "allow",
+      "git diff *": "allow",
+      "git log *": "allow",
+      "git fetch *": "allow",
+      "npm test *": "allow",
+      "npm run typecheck *": "allow",
+      "npm run lint *": "allow",
+      "grep *": "allow",
+      "rg *": "allow",
+      "rm -rf *": "deny",
+      "git push *": "deny",
+      "git commit *": "ask"
+    },
+    "webfetch": {
+      "*": "ask",
+      "https://nvd.nist.gov/*": "allow",
+      "https://github.com/*": "allow"
+    },
+    "task": {
+      "*": "ask",
+      "review-agent": "allow",
+      "explore": "allow"
+    },
+    "skill": {
+      "*": "allow",
+      "audit-trail-enforcer": "allow"
+    },
+    "external_directory": "ask",
+    "doom_loop": "ask"
+  },
+
+  "agent": {
+    "issue-orchestrator": {
+      "description": "Primary orchestrator: reads GitHub issues as source of truth, delegates to specialized subagents, enforces spec-driven workflow and evidence gates. Never implements directly — always delegates.",
+      "mode": "primary",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.1,
+      "color": "#2563eb",
+      "permission": {
+        "bash": {
+          "*": "ask",
+          "git status *": "allow",
+          "git diff *": "allow",
+          "git log *": "allow",
+          "git fetch --all --prune": "allow",
+          "gh issue view *": "allow",
+          "gh issue comment *": "ask",
+          "gh pr create *": "ask",
+          "npm test *": "allow",
+          "grep *": "allow",
+          "rg *": "allow"
+        },
+        "edit": "ask",
+        "task": {
+          "*": "allow",
+          "general": "deny"
+        },
+        "skill": {
+          "github-source-of-truth": "allow",
+          "spec-driven-development": "allow",
+          "audit-trail-enforcer": "allow",
+          "test-enforcement": "allow",
+          "*": "allow"
+        }
+      },
+      "tools": {
+        "github_*": true
+      }
+    },
+
+    "plan": {
+      "mode": "primary",
+      "model": "anthropic/claude-haiku-4-20250514",
+      "temperature": 0.0,
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "git status *": "allow",
+          "git diff *": "allow",
+          "git log *": "allow",
+          "git fetch *": "allow",
+          "gh issue view *": "allow",
+          "grep *": "allow",
+          "rg *": "allow"
+        },
+        "webfetch": "ask",
+        "skill": { "*": "allow" }
+      }
+    },
+
+    "build": {
+      "mode": "primary",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.2,
+      "permission": {
+        "edit": "ask",
+        "bash": {
+          "*": "ask",
+          "git status *": "allow",
+          "git diff *": "allow",
+          "git log *": "allow",
+          "git fetch *": "allow",
+          "git commit *": "ask",
+          "git push *": "deny",
+          "npm test *": "allow",
+          "npm run typecheck *": "allow",
+          "npm run lint *": "allow",
+          "grep *": "allow",
+          "rg *": "allow",
+          "rm -rf *": "deny"
+        }
+      }
+    },
+
+    "review-agent": {
+      "description": "Reviews code for quality, security, performance, and spec compliance. Read-only — never modifies files.",
+      "mode": "subagent",
+      "model": "anthropic/claude-haiku-4-20250514",
+      "temperature": 0.0,
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "git diff *": "allow",
+          "git log *": "allow",
+          "grep *": "allow",
+          "rg *": "allow",
+          "npm run lint *": "allow"
+        },
+        "task": { "*": "deny" },
+        "skill": {
+          "architecture-review": "allow",
+          "test-enforcement": "allow",
+          "audit-trail-enforcer": "allow",
+          "*": "deny"
+        }
+      }
+    },
+
+    "research-agent": {
+      "description": "Researches external documentation, CVEs, and dependency info using Brave Search and Context7. Read-only.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.2,
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "grep *": "allow",
+          "rg *": "allow"
+        },
+        "webfetch": {
+          "*": "ask",
+          "https://nvd.nist.gov/*": "allow",
+          "https://github.com/advisories/*": "allow"
+        },
+        "skill": {
+          "security-evidence-gate": "allow",
+          "*": "deny"
+        }
+      },
+      "tools": {
+        "brave-search_*": true,
+        "context7_*": true
+      }
+    },
+
+    "compliance-agent": {
+      "description": "Audits GDPR/DSGVO compliance, data minimization, and consent validation. Read-only for canonical data.",
+      "mode": "subagent",
+      "model": "anthropic/claude-haiku-4-20250514",
+      "temperature": 0.0,
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "grep *": "allow",
+          "rg *": "allow",
+          "git diff *": "allow"
+        },
+        "skill": {
+          "tierheim-compliance": "allow",
+          "audit-trail-enforcer": "allow",
+          "*": "deny"
+        }
+      }
+    },
+
+    "migration-agent": {
+      "description": "Validates database migrations: schema changes, rollback safety, data integrity. Limited write access.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.0,
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "migrations/**": "ask",
+          "data/migrations/**": "ask"
+        },
+        "bash": {
+          "*": "deny",
+          "sqlite3 *": "allow",
+          "psql *": "ask",
+          "git diff *": "allow",
+          "docker compose *": "ask"
+        },
+        "skill": {
+          "migration-review": "allow",
+          "test-enforcement": "allow",
+          "*": "deny"
+        }
+      },
+      "tools": {
+        "sqlite_*": true,
+        "docker_*": true
+      }
+    },
+
+    "playwright-agent": {
+      "description": "Executes visual regression tests via Playwright: screenshots, DOM snapshots, accessibility checks.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.1,
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "e2e-screenshots/**": "allow",
+          ".opencode/reports/visual-qa/**": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "npx playwright *": "allow",
+          "git diff *": "allow"
+        },
+        "skill": {
+          "playwright-visual-review": "allow",
+          "*": "deny"
+        }
+      },
+      "tools": {
+        "playwright_*": true
+      }
+    },
+
+    "architecture-agent": {
+      "description": "Reviews architecture decisions, dependency graphs, and coupling. Read-only, produces ADRs.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.1,
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "docs/adr/**": "ask",
+          ".opencode/reports/architecture/**": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "grep *": "allow",
+          "rg *": "allow",
+          "git diff *": "allow"
+        },
+        "skill": {
+          "architecture-review": "allow",
+          "spec-driven-development": "allow",
+          "*": "deny"
+        }
+      }
+    },
+
+    "security-agent": {
+      "description": "Security research: PoC reproduction, vulnerability validation, CVSS scoring. Evidence-gated — no finding without proof.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.0,
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "test/security/**": "allow",
+          ".opencode/reports/security/**": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "docker *": "allow",
+          "docker compose *": "ask",
+          "git diff *": "allow",
+          "npm audit *": "allow"
+        },
+        "task": {
+          "*": "deny",
+          "research-agent": "allow"
+        },
+        "skill": {
+          "security-evidence-gate": "allow",
+          "github-source-of-truth": "allow",
+          "audit-trail-enforcer": "allow",
+          "*": "deny"
+        }
+      },
+      "tools": {
+        "docker_*": true,
+        "brave-search_*": true
+      }
+    },
+
+    "documentation-agent": {
+      "description": "Generates and maintains documentation, wiki pages, and release notes. Write access to docs/ only.",
+      "mode": "subagent",
+      "model": "anthropic/claude-haiku-4-20250514",
+      "temperature": 0.2,
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "docs/**": "allow",
+          "README.md": "ask",
+          "CHANGELOG.md": "ask"
+        },
+        "bash": "deny",
+        "skill": {
+          "audit-trail-enforcer": "allow",
+          "funding-document-generator": "allow",
+          "*": "deny"
+        }
+      }
+    }
+  }
+}

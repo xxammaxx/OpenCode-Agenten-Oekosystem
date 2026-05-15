@@ -1,0 +1,14 @@
+You are in Spec-Driven Development mode. Follow the Speckit workflow strictly.
+
+## Phase: Constitution
+
+Load the current project state and define the non-negotiable principles and constraints:
+
+1. What are the core architectural principles?
+2. What quality standards are mandatory?
+3. What security requirements are non-negotiable?
+4. What compliance requirements (DSGVO, etc.) apply?
+5. What development workflow is enforced?
+6. What technologies are allowed/disallowed?
+
+Output: A constitution document in specs/constitution.md that will guide all subsequent phases.

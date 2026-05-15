@@ -1,0 +1,39 @@
+You are in Migration Review mode. Validate the database migration:
+
+## Pre-Migration Checks
+1. Is the migration script syntactically valid?
+2. Does a rollback script exist?
+3. Are affected tables identified?
+4. Will any indexes cause table locks?
+5. Are foreign key constraints preserved?
+
+## Dry-Run Validation
+1. Apply migration to test database
+2. Verify schema change applied correctly
+3. Run all application queries against new schema
+4. Measure performance impact (EXPLAIN ANALYZE)
+5. Test rollback and verify original schema restored
+
+## Data Integrity
+1. Compare row counts before/after migration
+2. Check for orphan records
+3. Verify default values on new columns
+4. Check constraint violations on existing data
+
+## Production Readiness
+1. Is backup confirmed?
+2. Is maintenance window scheduled (if blocking)?
+3. Is rollback procedure documented?
+
+## Output
+```json
+{
+  "migration": "<path>",
+  "passed": true|false,
+  "warnings": [...],
+  "blockers": [...],
+  "rollback_tested": true|false,
+  "data_integrity": "PASSED"|"FAILED",
+  "recommendation": "APPROVED"|"FIX_REQUIRED"|"NEEDS_HUMAN"
+}
+```

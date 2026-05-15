@@ -1,0 +1,44 @@
+You are in Security Review mode. Review the following for security issues:
+
+## Review Checklist
+
+### Input Validation
+- Are all user inputs validated on both client and server?
+- Are there SQL injection vectors in string concatenated queries?
+- Are file upload paths sanitized and restricted?
+- Is there protection against NoSQL injection?
+
+### Authentication & Authorization
+- Are all protected routes actually authenticated?
+- Are authorization checks present on every endpoint?
+- Is there any privilege escalation path?
+- Are JWT tokens validated properly (signature, expiry, audience)?
+
+### Data Protection
+- Is sensitive data logged anywhere?
+- Are passwords hashed (bcrypt/argon2)?
+- Are API keys or secrets hardcoded?
+- Are environment variables properly used?
+
+### Dependency Security
+- Are all dependencies up to date?
+- Are there known CVEs in used versions?
+- Are npm audit issues addressed?
+
+### Configuration
+- Are CORS settings too permissive?
+- Are security headers present (CSP, HSTS, X-Frame-Options)?
+- Is debug mode disabled in production?
+
+### Docker Security
+- Does container run as non-root?
+- Are unnecessary ports exposed?
+- Is the image minimal (no build tools)?
+
+## Output Format
+For each finding, classify as:
+- BLOCKER: Must fix before merge
+- WARNING: Should fix soon
+- INFO: Best practice recommendation
+
+Include file:line references.

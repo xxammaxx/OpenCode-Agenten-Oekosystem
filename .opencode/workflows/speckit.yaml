@@ -1,0 +1,53 @@
+# Speckit Workflow Definition
+name: speckit
+description: Spec-Driven Development with Speckit
+
+phases:
+  - name: constitution
+    command: /speckit.constitution
+    description: Define project principles and constraints
+    output: specs/constitution.md
+    gate: constitution must exist and contain core principles
+
+  - name: specify
+    command: /speckit.specify
+    description: Create formal specification
+    output: specs/<feature>/specification.md
+    depends_on: [constitution]
+    gate: specification must have acceptance criteria
+
+  - name: plan
+    command: /speckit.plan
+    description: Create implementation plan
+    output: specs/<feature>/plan.md
+    depends_on: [specify]
+    gate: plan must cover all specification items
+
+  - name: tasks
+    command: /speckit.tasks
+    description: Break into atomic tasks
+    output: specs/<feature>/tasks.md
+    depends_on: [plan]
+    gate: tasks must be atomic and testable
+
+  - name: taskstoissues
+    command: /speckit.taskstoissues
+    description: Create GitHub Issues from tasks
+    depends_on: [tasks]
+    gate: all tasks must have corresponding GitHub Issues
+
+  - name: implement
+    command: /speckit.implement
+    description: Implement tasks in dependency order
+    depends_on: [taskstoissues]
+    gate: each task must pass tests before proceeding
+
+skills_required:
+  - spec-driven-development
+  - github-source-of-truth
+  - test-enforcement
+
+agents:
+  coordinator: issue-orchestrator
+  implementer: build
+  reviewer: review-agent

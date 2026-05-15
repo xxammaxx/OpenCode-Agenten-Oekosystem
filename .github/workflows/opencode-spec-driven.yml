@@ -1,0 +1,38 @@
+name: OpenCode Spec-Driven
+on:
+  issues:
+    types: [opened, labeled]
+  issue_comment:
+    types: [created]
+
+jobs:
+  spec-workflow:
+    if: |
+      contains(github.event.issue.labels.*.name, 'spec-driven') ||
+      contains(github.event.comment.body, '/opencode spec')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: anomalyco/opencode/github@latest
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          model: anthropic/claude-sonnet-4-20250514
+          agent: issue-orchestrator
+          prompt: |
+            Follow the spec-driven development workflow:
+            1. Load the spec-driven-development skill
+            2. Read the issue specification
+            3. Create spec artifacts in specs/
+            4. Break down into tasks
+            5. Create child issues for each task
+            6. Post structured plan as issue comment
+            Do NOT implement. Only plan and create issues.

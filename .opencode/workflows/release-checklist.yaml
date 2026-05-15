@@ -1,0 +1,55 @@
+# Release Checklist Workflow
+name: release-checklist
+description: Production release validation
+
+phases:
+  - name: code_quality
+    checks:
+      - typescript_check: npm run typecheck
+      - tests: npm test
+      - lint: npm run lint
+      - no_todos: grep -r "TODO\|FIXME" src/
+      - no_console_logs: grep -r "console.log" src/
+
+  - name: security
+    checks:
+      - dependency_audit: npm audit --audit-level=high
+      - no_hardcoded_secrets: scan for API keys and tokens
+      - secrets_documented: .env.example is current
+      - security_policy: SECURITY.md is current
+
+  - name: docker
+    checks:
+      - image_builds: docker build --target production
+      - non_root_user: USER is not root
+      - healthcheck: endpoint responds
+      - dockerignore: excludes node_modules, logs, data
+
+  - name: review
+    agent: review-agent
+    description: Final code review of all changes
+    focus: security, performance, breaking changes
+
+  - name: visual_qa
+    agent: playwright-agent
+    description: Visual regression check
+    gate: no REGRESSION classified
+
+  - name: changelog
+    agent: documentation-agent
+    description: Generate release notes
+
+  - name: human_gate
+    type: manual_approval
+    description: Human confirms release readiness
+
+  - name: tag_and_release
+    agent: human
+    description: Create git tag and GitHub Release
+    note: AI never tags releases autonomously
+
+skills_required:
+  - test-enforcement
+  - playwright-visual-review
+  - github-source-of-truth
+  - audit-trail-enforcer

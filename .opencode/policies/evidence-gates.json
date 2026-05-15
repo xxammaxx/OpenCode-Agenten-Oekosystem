@@ -1,0 +1,92 @@
+{
+  "version": "1.0.0",
+  "description": "Defines mandatory evidence requirements before agents can make specific claim types",
+
+  "gates": {
+    "severity_claim": {
+      "description": "Before an agent can state a vulnerability severity",
+      "required_evidence": [
+        "reproducible_poc",
+        "log_output",
+        "cvss_vector",
+        "impact_screenshot",
+        "reproduction_environment"
+      ],
+      "prohibited_without": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+      "allow_fallback": "UNVERIFIED",
+      "validation": {
+        "cvss_minimum_metrics": ["AV", "AC", "PR", "UI", "S", "C", "I", "A"],
+        "poc_must_be": "runnable_and_deterministic",
+        "logs_must_be": "actual_captured_output"
+      }
+    },
+    "architecture_decision": {
+      "description": "Before proposing an architecture change",
+      "required_evidence": [
+        "adr_document",
+        "dependency_impact_analysis",
+        "coupling_analysis",
+        "alternative_evaluation"
+      ],
+      "prohibited_without": ["migration_approval", "breaking_change"],
+      "allow_fallback": "PROPOSAL_ONLY"
+    },
+    "migration_approval": {
+      "description": "Before marking a migration as ready",
+      "required_evidence": [
+        "rollback_tested",
+        "data_integrity_verified",
+        "backup_confirmed",
+        "dry_run_output"
+      ],
+      "prohibited_without": ["ready_for_production"],
+      "allow_fallback": "PENDING_REVIEW"
+    },
+    "bug_fix_claim": {
+      "description": "Before claiming a bug is fixed",
+      "required_evidence": [
+        "failing_test_before",
+        "passing_test_after",
+        "regression_test_added",
+        "git_diff_stat"
+      ],
+      "prohibited_without": ["fixed", "resolved"],
+      "allow_fallback": "PENDING_VERIFICATION"
+    },
+    "feature_complete": {
+      "description": "Before claiming a feature is complete",
+      "required_evidence": [
+        "acceptance_criteria_met",
+        "test_coverage_maintained",
+        "spec_compliance_verified",
+        "visual_regression_passed"
+      ],
+      "prohibited_without": ["done", "completed"],
+      "allow_fallback": "IN_PROGRESS"
+    },
+    "compliance_claim": {
+      "description": "Before claiming DSGVO/GDPR compliance",
+      "required_evidence": [
+        "data_flow_diagram",
+        "consent_mechanism_verified",
+        "retention_policy_enforced",
+        "right_to_deletion_tested",
+        "data_minimization_audit"
+      ],
+      "prohibited_without": ["compliant", "dsgvo_ready", "gdpr_ready"],
+      "allow_fallback": "PENDING_AUDIT"
+    }
+  },
+
+  "auto_block": {
+    "patterns": [
+      "rm -rf",
+      "DROP TABLE",
+      "DELETE FROM.*WHERE.*true",
+      "git push --force",
+      "docker rm -f",
+      "format C:"
+    ],
+    "action": "deny_with_audit"
+  }
+}

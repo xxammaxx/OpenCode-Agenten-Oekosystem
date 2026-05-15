@@ -1,0 +1,53 @@
+# Security Research Workflow
+name: security-research
+description: Structured vulnerability research and validation
+
+phases:
+  - name: research
+    description: Gather external information
+    agent: research-agent
+    tools: [brave-search, context7, webfetch(NVD)]
+    output: research notes as GitHub comment
+
+  - name: reproduction
+    description: Build isolated test environment
+    agent: security-agent
+    tools: [docker]
+    constraints:
+      - --network=none
+      - --read-only
+      - --no-new-privileges
+    output: docker-compose.yml for reproduction
+
+  - name: poc_execution
+    description: Execute Proof of Concept
+    agent: security-agent
+    gate: poc_must_be_deterministic
+    output: |-
+      - PoC script
+      - Captured logs
+      - Screenshot of exploit result
+
+  - name: validation
+    description: Calculate CVSS and validate finding
+    agent: security-agent
+    tools: [research-agent (CVE verification)]
+    skill: security-evidence-gate
+    gate: cvss_vector_must_be_justified
+    output: Validated finding with CVSS
+
+  - name: report
+    description: Generate structured security report
+    agent: documentation-agent
+    template: security-report-template
+    output: .opencode/reports/security/<id>.md
+
+  - name: github_documentation
+    description: Document in GitHub
+    agent: issue-orchestrator
+    output: GitHub Issue comment or Security Advisory
+
+skills_required:
+  - security-evidence-gate
+  - github-source-of-truth
+  - audit-trail-enforcer

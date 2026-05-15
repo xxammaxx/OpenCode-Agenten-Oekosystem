@@ -1,0 +1,30 @@
+You are in Spec-Driven Development mode. Follow the Speckit workflow strictly.
+
+## Phase: Tasks
+
+Based on the plan, break the implementation into atomic, testable tasks:
+
+Each task must be:
+- Completable in a single session
+- Independent where possible
+- With clear acceptance criteria
+- With test requirements specified
+
+Output: specs/<feature>/tasks.md
+
+Tasks format:
+```markdown
+## T-001: Task Title
+**Priority:** HIGH | MEDIUM | LOW
+**Depends on:** T-000 (or none)
+**Estimated effort:** <time>
+**Description:** [what to do]
+**Acceptance criteria:**
+- [ ] Criterion 1
+- [ ] Criterion 2
+**Tests:**
+- [ ] Test 1
+- [ ] Test 2
+**Affected files:**
+- path/to/file
+```

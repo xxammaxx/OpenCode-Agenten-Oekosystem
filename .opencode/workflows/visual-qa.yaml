@@ -1,0 +1,54 @@
+# Visual QA Workflow
+name: visual-qa
+description: Automated visual regression testing
+
+phases:
+  - name: baseline_check
+    description: Check if baseline exists
+    agent: playwright-agent
+    result: baseline_exists: true|false
+
+  - name: capture
+    description: Capture current state
+    agent: playwright-agent
+    tools: [playwright]
+    captures:
+      - full_page_screenshot
+      - dom_snapshot
+      - accessibility_tree
+    viewports: [1280x720, 375x812]
+
+  - name: diff_analysis
+    description: Compare against baseline
+    agent: playwright-agent
+    skill: playwright-visual-review
+    analysis:
+      - pixel_diff (pixelmatch, threshold: 0.1%)
+      - dom_diff (structural comparison)
+      - text_diff (content comparison)
+      - a11y_diff (accessibility tree)
+
+  - name: classify
+    description: Classify visual changes
+    agent: playwright-agent
+    classes:
+      - REGRESSION: block merge
+      - IMPROVEMENT: approve
+      - NEW_BASELINE: needs review
+      - COSMETIC: warning only
+      - A11Y_REGRESSION: block merge
+
+  - name: report
+    description: Generate QA report
+    agent: documentation-agent
+    output: .opencode/reports/visual-qa/<timestamp>.json
+
+  - name: github_comment
+    description: Post to PR/Issue
+    agent: issue-orchestrator
+    content: classification + screenshots + recommendation
+
+skills_required:
+  - playwright-visual-review
+  - github-source-of-truth
+  - audit-trail-enforcer

@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Security Report Schema",
+  "type": "object",
+  "required": ["report_id", "severity", "status", "cvss_vector", "reproduction_steps"],
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "pattern": "^SEC-\\d{4}-\\d{4}$"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["VERIFIED", "UNVERIFIED", "FALSE_POSITIVE"]
+    },
+    "cvss_vector": {
+      "type": "string",
+      "pattern": "^CVSS:3\\.\\d/AV:[NALP]/AC:[LH]/PR:[NLH]/UI:[NR]/S:[UC]/C:[NLH]/I:[NLH]/A:[NLH]"
+    },
+    "reproduction_steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "poc_code": { "type": "string" },
+    "log_evidence": { "type": "string" },
+    "impact_screenshot": { "type": "string" },
+    "affected_components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "version"],
+        "properties": {
+          "name": { "type": "string" },
+          "version": { "type": "string" }
+        }
+      }
+    },
+    "cve_id": {
+      "type": "string",
+      "pattern": "^CVE-\\d{4}-\\d{4,}$"
+    },
+    "remediation": { "type": "string" }
+  }
+}

@@ -1,0 +1,25 @@
+You are generating a funding proposal for a civic-tech / open-source project.
+
+## Data Gathering
+1. Read project README.md, AGENTS.md, and CONTRIBUTING.md
+2. Extract milestones from GitHub Milestones
+3. Analyze package.json for tech stack
+4. Count contributors from GitHub API
+5. Estimate development hours from commit history
+
+## Sections to Generate
+1. Executive Summary (Zusammenfassung) — project mission, social impact
+2. Project Description (Projektbeschreibung) — problem, solution, tech stack
+3. Work Plan (Arbeitsplan) — milestones, timeline, deliverables, risks
+4. Budget (Kostenplan) — personnel, infrastructure, services, contingency
+5. Impact Measurement (Wirkungsmessung) — metrics, sustainability
+6. Data Protection (Datenschutz DSGVO) — data minimization, consent, retention
+
+## Important Rules
+- ALL numbers must be traceable to data sources
+- NO fabricated impact metrics — cite source or mark "[ESTIMATE]"
+- Budget numbers must be calculated, not guessed
+- Follow the template: .opencode/templates/funding-proposal-template.md
+
+## Output
+Generate the complete funding proposal document.

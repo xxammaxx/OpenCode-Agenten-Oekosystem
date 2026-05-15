@@ -1,0 +1,24 @@
+You are in Spec-Driven Development mode. Follow the Speckit workflow strictly.
+
+## Phase: Implement
+
+You are now implementing tasks from specs/<feature>/tasks.md.
+
+Rules:
+1. Work through tasks in dependency order
+2. Each task = one GitHub issue (use github-source-of-truth skill)
+3. Post Start/End comments on each issue
+4. Run tests after each task completion
+5. Do not proceed to next task until current task tests pass
+6. Commit after each completed task with meaningful message
+7. Reference issue number in commit message
+
+Before starting EACH task:
+1. git fetch --all --prune
+2. gh issue view <TASK_ISSUE_NUMBER>
+3. Post Start Comment
+4. Implement
+5. Run tests
+6. Post End Comment
+
+Remember: Spec → Plan → Tasks → Issues → Implement. Never skip ahead.

@@ -1,0 +1,91 @@
+{
+  "version": "1.0.0",
+  "description": "Model routing rules for task-to-model assignment, supporting local (Ollama/GTX1070) and cloud (Anthropic) models.",
+
+  "routing_rules": [
+    {
+      "task_pattern": ["code review", "lint", "typecheck"],
+      "model": "anthropic/claude-haiku-4-20250514",
+      "local_fallback": "ollama/gemma3:12b",
+      "temperature": 0.0,
+      "max_tokens": 4096
+    },
+    {
+      "task_pattern": ["implement", "refactor", "security research", "security scan"],
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "local_fallback": "ollama/qwen2.5:14b",
+      "temperature": 0.1,
+      "max_tokens": 8192
+    },
+    {
+      "task_pattern": ["architecture", "planning", "specification", "design"],
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "local_fallback": null,
+      "temperature": 0.1,
+      "max_tokens": 8192
+    },
+    {
+      "task_pattern": ["documentation", "release notes", "changelog", "README"],
+      "model": "anthropic/claude-haiku-4-20250514",
+      "local_fallback": "ollama/gemma3:12b",
+      "temperature": 0.2,
+      "max_tokens": 4096
+    },
+    {
+      "task_pattern": ["compliance check", "dsgvo audit", "data protection"],
+      "model": "anthropic/claude-haiku-4-20250514",
+      "local_fallback": "ollama/gemma3:12b",
+      "temperature": 0.0,
+      "max_tokens": 4096
+    },
+    {
+      "task_pattern": ["visual qa", "screenshot analysis", "playwright"],
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "local_fallback": "ollama/qwen2.5:14b",
+      "temperature": 0.1,
+      "max_tokens": 4096
+    },
+    {
+      "task_pattern": ["migration", "database", "schema change"],
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "local_fallback": null,
+      "temperature": 0.0,
+      "max_tokens": 8192
+    },
+    {
+      "task_pattern": ["funding proposal", "funding document"],
+      "model": "anthropic/claude-haiku-4-20250514",
+      "local_fallback": "ollama/gemma3:12b",
+      "temperature": 0.3,
+      "max_tokens": 8192
+    }
+  ],
+
+  "local_model_config": {
+    "provider": "ollama",
+    "base_url": "http://localhost:11434/v1",
+    "models": {
+      "gemma3:12b": {
+        "ctx_size": 8192,
+        "temperature": 0.0,
+        "gpu_layers": 28,
+        "description": "Lightweight model for code review, linting, and documentation"
+      },
+      "qwen2.5:14b": {
+        "ctx_size": 8192,
+        "temperature": 0.1,
+        "gpu_layers": 24,
+        "description": "General purpose model for implementation and research"
+      }
+    },
+    "max_concurrent_requests": 1,
+    "request_timeout_ms": 300000
+  },
+
+  "fallback_strategy": {
+    "description": "When cloud models are unavailable, fall back to local models",
+    "priority": ["local", "cloud"],
+    "max_retries": 2,
+    "retry_delay_ms": 5000
+  }
+}

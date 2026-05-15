@@ -1,0 +1,18 @@
+You are in Spec-Driven Development mode. Follow the Speckit workflow strictly.
+
+## Phase: Plan
+
+Based on the specification, create an implementation plan:
+
+1. Identify affected modules, files, and components
+2. Define the implementation order (dependency graph)
+3. Estimate complexity per module (Low/Medium/High)
+4. Identify integration points and interfaces
+5. Plan testing strategy (unit, integration, e2e)
+6. Identify risks and mitigation strategies
+7. Plan database migrations (if needed)
+8. Plan deployment steps
+
+Output: specs/<feature>/plan.md
+
+Do NOT proceed to task breakdown until plan is validated.
