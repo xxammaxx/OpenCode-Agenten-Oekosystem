@@ -4,6 +4,19 @@
 
 Every unit of work MUST originate from a GitHub Issue. No implementation without an issue.
 
+## Read Before Sketch
+
+For architecture, APIs, SDKs, providers, security, CI/CD, MCP, data models, external tools, or other non-trivial changes:
+
+1. Read the relevant project instructions first, including `AGENTS.md`, `SECURITY.md`, `opencode.jsonc`, and any task-specific notes.
+2. Read the linked issue or spec in full before sketching a plan.
+3. Read the affected repository files, tests, and docs before editing.
+4. Check current official documentation when external APIs, SDKs, providers, MCP, or security are involved.
+5. Summarize validated facts and explicit uncertainties before proposing changes.
+6. Run the relevant checks or explain why they could not run.
+
+Use `.opencode/skills/read-before-sketch/SKILL.md` as the reusable version of this rule.
+
 ## Spec-Driven Development Mandate
 
 Before ANY implementation code is written, the Speckit workflow MUST complete:

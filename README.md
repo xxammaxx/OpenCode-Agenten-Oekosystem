@@ -12,7 +12,7 @@
 Dieses Repository enthält ein vollständig konfiguriertes OpenCode-Agenten-Ökosystem mit:
 
 - **9 spezialisierten Agenten** (Orchestrator, Review, Security, Compliance, Migration, Playwright, Architecture, Research, Documentation)
-- **10 Skills** für deterministische, evidenzbasierte Workflows
+- **11 Skills** für deterministische, evidenzbasierte Workflows
 - **MCP Trust-Tier-Sicherheitsmodell** (Readonly → Sandboxed → Trusted)
 - **Spec-Driven Development** (Speckit-Workflow)
 - **DSGVO-Compliance** für Tierheim-Verwaltungssoftware
@@ -59,6 +59,8 @@ Dieses Repository enthält ein vollständig konfiguriertes OpenCode-Agenten-Öko
 
 ### Installation — Global (empfohlen)
 
+OpenCode lädt die globale Konfiguration aus `~/.config/opencode/opencode.json` und globale Agents/Skills aus `~/.config/opencode/{agents,skills}`. Die folgenden Befehle spiegeln das Repository dorthin. Wenn dort bereits Dateien liegen, merge die neuen Schlüssel statt blind zu überschreiben.
+
 Führe diesen Befehl im Terminal aus, um das Ökosystem global zu installieren:
 
 ```powershell
@@ -70,17 +72,32 @@ $tmpDir = "$env:TEMP\opencode-ecosystem"
 # Klonen
 git clone $repoUrl $tmpDir
 
+# OpenCode-Assets spiegeln
+Copy-Item -Path "$tmpDir\.opencode" -Destination "$globalOpenCode\.opencode" -Recurse -Force
+
 # Agents installieren
 New-Item -ItemType Directory -Path "$globalOpenCode\agents" -Force
 New-Item -ItemType Directory -Path "$globalOpenCode\skills" -Force
 Copy-Item -Path "$tmpDir\.opencode\agents\*" -Destination "$globalOpenCode\agents\" -Recurse -Force
 Copy-Item -Path "$tmpDir\.opencode\skills\*" -Destination "$globalOpenCode\skills\" -Recurse -Force
 
-# AGENTS.md global installieren
+# AGENTS.md und SECURITY.md global installieren
 if (-not (Test-Path "$globalOpenCode\AGENTS.md")) {
     Copy-Item -Path "$tmpDir\AGENTS.md" -Destination "$globalOpenCode\AGENTS.md"
 } else {
     Write-Warning "Global AGENTS.md exists — merge manually: $globalOpenCode\AGENTS.md"
+}
+if (-not (Test-Path "$globalOpenCode\SECURITY.md")) {
+    Copy-Item -Path "$tmpDir\SECURITY.md" -Destination "$globalOpenCode\SECURITY.md"
+} else {
+    Write-Warning "Global SECURITY.md exists — merge manually: $globalOpenCode\SECURITY.md"
+}
+
+# Globale opencode.json installieren
+if (-not (Test-Path "$globalOpenCode\opencode.json")) {
+    Copy-Item -Path "$tmpDir\opencode.jsonc" -Destination "$globalOpenCode\opencode.json"
+} else {
+    Write-Warning "Global opencode.json exists — merge repo settings into $globalOpenCode\opencode.json"
 }
 
 # Aufräumen
@@ -96,16 +113,31 @@ TMP_DIR=$(mktemp -d)
 
 git clone "$REPO_URL" "$TMP_DIR"
 
+# OpenCode-Assets spiegeln
+cp -R "$TMP_DIR/.opencode" "$GLOBAL_OC/.opencode"
+
 # Agents und Skills installieren
 mkdir -p "$GLOBAL_OC/agents" "$GLOBAL_OC/skills"
 cp -r "$TMP_DIR/.opencode/agents/"* "$GLOBAL_OC/agents/"
 cp -r "$TMP_DIR/.opencode/skills/"* "$GLOBAL_OC/skills/"
 
-# AGENTS.md global installieren
+# AGENTS.md und SECURITY.md global installieren
 if [ ! -f "$GLOBAL_OC/AGENTS.md" ]; then
     cp "$TMP_DIR/AGENTS.md" "$GLOBAL_OC/AGENTS.md"
 else
     echo "WARNING: Global AGENTS.md exists — merge manually: $GLOBAL_OC/AGENTS.md"
+fi
+if [ ! -f "$GLOBAL_OC/SECURITY.md" ]; then
+    cp "$TMP_DIR/SECURITY.md" "$GLOBAL_OC/SECURITY.md"
+else
+    echo "WARNING: Global SECURITY.md exists — merge manually: $GLOBAL_OC/SECURITY.md"
+fi
+
+# Globale opencode.json installieren
+if [ ! -f "$GLOBAL_OC/opencode.json" ]; then
+    cp "$TMP_DIR/opencode.jsonc" "$GLOBAL_OC/opencode.json"
+else
+    echo "WARNING: Global opencode.json exists — merge repo settings into $GLOBAL_OC/opencode.json"
 fi
 
 rm -rf "$TMP_DIR"
@@ -149,6 +181,8 @@ cp -r .github/workflows/ /pfad/zu/deinem/projekt/.github/
 
 4. **Agent wechseln:** Drücke `Tab` um zwischen `issue-orchestrator`, `plan`, und `build` zu wechseln.
 
+Nach Änderungen an `opencode.json` oder an Dateien unter `.opencode/` OpenCode neu starten, damit die Konfiguration neu geladen wird.
+
 ---
 
 ## Agent-Übersicht
@@ -174,6 +208,7 @@ cp -r .github/workflows/ /pfad/zu/deinem/projekt/.github/
 | Skill | Aktivierung durch |
 |-------|-------------------|
 | `github-source-of-truth` | Immer bei Task-Start |
+| `read-before-sketch` | Architektur, APIs, SDKs, MCP, Security, neue Abhängigkeiten |
 | `spec-driven-development` | Feature-Request, "Spec" |
 | `security-evidence-gate` | "Vulnerability", "CVE" |
 | `playwright-visual-review` | Frontend-Änderung |
@@ -263,7 +298,7 @@ Bevor ein Agent Behauptungen aufstellen darf, MUSS Evidenz vorliegen:
 .
 ├── AGENTS.md                        # Projektregeln
 ├── SECURITY.md                      # Security Policy
-├── opencode.jsonc                   # Hauptkonfiguration
+├── opencode.jsonc                   # Hauptkonfiguration (global gespiegelt als ~/.config/opencode/opencode.json)
 ├── .gitignore
 ├── .github/workflows/               # GitHub Actions
 │   ├── opencode-spec-driven.yml
@@ -283,6 +318,7 @@ Bevor ein Agent Behauptungen aufstellen darf, MUSS Evidenz vorliegen:
     │   └── documentation-agent.md
     ├── skills/                      # Skill-Definitionen
     │   ├── github-source-of-truth/SKILL.md
+    │   ├── read-before-sketch/SKILL.md
     │   ├── spec-driven-development/SKILL.md
     │   ├── security-evidence-gate/SKILL.md
     │   ├── playwright-visual-review/SKILL.md

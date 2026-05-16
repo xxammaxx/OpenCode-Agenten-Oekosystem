@@ -10,7 +10,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 
 1. **Do not** open a public GitHub issue
 2. Email the maintainer or open a private security advisory at:
-   https://github.com/xxammaxx/OpenCode-Agenten-Oekosystems/security/advisories/new
+   https://github.com/xxammaxx/OpenCode-Agenten-Oekosystem/security/advisories/new
 
 We will acknowledge receipt within 48 hours and provide an estimated timeline for a fix.
 

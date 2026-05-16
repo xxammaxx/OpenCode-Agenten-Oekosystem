@@ -8,7 +8,8 @@ permission:
     "grep *": allow
     "rg *": allow
     "*": deny
-  webfetch: ask
+  # Current OpenCode versions only accept allow/ask/deny here.
+  webfetch: allow
   skill:
     "security-evidence-gate": allow
     "*": deny

@@ -103,6 +103,8 @@
       "git push *": "deny",
       "git commit *": "ask"
     },
+    // Current OpenCode versions only accept allow/ask/deny here.
+    // URL-specific webfetch allowlists are no longer valid.
     "webfetch": "ask",
     "task": {
       "*": "ask",
@@ -238,7 +240,7 @@
           "grep *": "allow",
           "rg *": "allow"
         },
-        "webfetch": "ask",
+        "webfetch": "allow",
         "skill": {
           "security-evidence-gate": "allow",
           "*": "deny"
