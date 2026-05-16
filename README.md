@@ -56,12 +56,23 @@ Dieses Repository enthält ein vollständig konfiguriertes OpenCode-Agenten-Öko
 - [GitHub CLI](https://cli.github.com) (`gh`) installiert und authentifiziert
 - Git installiert
 - Node.js 20+ (für Playwright und Tool-Support)
+- `node scripts/install-global.mjs` zum Spiegeln der OpenCode-Konfiguration auf einen zweiten Rechner
 
 ### Installation — Global (empfohlen)
 
-OpenCode lädt die globale Konfiguration aus `~/.config/opencode/opencode.json` und globale Agents/Skills aus `~/.config/opencode/{agents,skills}`. Die folgenden Befehle spiegeln das Repository dorthin. Wenn dort bereits Dateien liegen, merge die neuen Schlüssel statt blind zu überschreiben.
+OpenCode lädt die globale Konfiguration aus `~/.config/opencode/opencode.json` und globale Agents/Skills aus `~/.config/opencode/{agents,skills}`. Das Installationsskript spiegelt das Repository dorthin und legt vorher ein Backup der bestehenden Konfiguration an.
 
-Führe diesen Befehl im Terminal aus, um das Ökosystem global zu installieren:
+Empfohlener Ablauf für einen zweiten Rechner oder eine andere KI:
+
+```bash
+git clone https://github.com/xxammaxx/OpenCode-Agenten-Oekosystem.git
+cd OpenCode-Agenten-Oekosystem
+node scripts/install-global.mjs
+```
+
+Falls du die Schritte manuell spiegeln willst, nutze die PowerShell- oder Bash-Blöcke darunter.
+
+Manuelle Fallback-Befehle:
 
 ```powershell
 # PowerShell (Windows)
@@ -81,11 +92,16 @@ New-Item -ItemType Directory -Path "$globalOpenCode\skills" -Force
 Copy-Item -Path "$tmpDir\.opencode\agents\*" -Destination "$globalOpenCode\agents\" -Recurse -Force
 Copy-Item -Path "$tmpDir\.opencode\skills\*" -Destination "$globalOpenCode\skills\" -Recurse -Force
 
-# AGENTS.md und SECURITY.md global installieren
+# AGENTS.md, CONTRIBUTING.md und SECURITY.md global installieren
 if (-not (Test-Path "$globalOpenCode\AGENTS.md")) {
     Copy-Item -Path "$tmpDir\AGENTS.md" -Destination "$globalOpenCode\AGENTS.md"
 } else {
     Write-Warning "Global AGENTS.md exists — merge manually: $globalOpenCode\AGENTS.md"
+}
+if (-not (Test-Path "$globalOpenCode\CONTRIBUTING.md")) {
+    Copy-Item -Path "$tmpDir\CONTRIBUTING.md" -Destination "$globalOpenCode\CONTRIBUTING.md"
+} else {
+    Write-Warning "Global CONTRIBUTING.md exists — merge manually: $globalOpenCode\CONTRIBUTING.md"
 }
 if (-not (Test-Path "$globalOpenCode\SECURITY.md")) {
     Copy-Item -Path "$tmpDir\SECURITY.md" -Destination "$globalOpenCode\SECURITY.md"
@@ -121,11 +137,16 @@ mkdir -p "$GLOBAL_OC/agents" "$GLOBAL_OC/skills"
 cp -r "$TMP_DIR/.opencode/agents/"* "$GLOBAL_OC/agents/"
 cp -r "$TMP_DIR/.opencode/skills/"* "$GLOBAL_OC/skills/"
 
-# AGENTS.md und SECURITY.md global installieren
+# AGENTS.md, CONTRIBUTING.md und SECURITY.md global installieren
 if [ ! -f "$GLOBAL_OC/AGENTS.md" ]; then
     cp "$TMP_DIR/AGENTS.md" "$GLOBAL_OC/AGENTS.md"
 else
     echo "WARNING: Global AGENTS.md exists — merge manually: $GLOBAL_OC/AGENTS.md"
+fi
+if [ ! -f "$GLOBAL_OC/CONTRIBUTING.md" ]; then
+    cp "$TMP_DIR/CONTRIBUTING.md" "$GLOBAL_OC/CONTRIBUTING.md"
+else
+    echo "WARNING: Global CONTRIBUTING.md exists — merge manually: $GLOBAL_OC/CONTRIBUTING.md"
 fi
 if [ ! -f "$GLOBAL_OC/SECURITY.md" ]; then
     cp "$TMP_DIR/SECURITY.md" "$GLOBAL_OC/SECURITY.md"
@@ -154,7 +175,7 @@ cd OpenCode-Agenten-Oekosystem
 
 # In dein Projekt kopieren:
 cp -r .opencode/ /pfad/zu/deinem/projekt/
-cp AGENTS.md opencode.jsonc SECURITY.md /pfad/zu/deinem/projekt/
+cp AGENTS.md CONTRIBUTING.md opencode.jsonc SECURITY.md /pfad/zu/deinem/projekt/
 cp -r .github/workflows/ /pfad/zu/deinem/projekt/.github/
 ```
 
@@ -297,8 +318,11 @@ Bevor ein Agent Behauptungen aufstellen darf, MUSS Evidenz vorliegen:
 ```
 .
 ├── AGENTS.md                        # Projektregeln
+├── CONTRIBUTING.md                  # Mitwirkungs- und Installationshinweise
 ├── SECURITY.md                      # Security Policy
 ├── opencode.jsonc                   # Hauptkonfiguration (global gespiegelt als ~/.config/opencode/opencode.json)
+├── scripts/
+│   └── install-global.mjs           # Ein-Klick-Installer für andere Rechner/KIs
 ├── .gitignore
 ├── .github/workflows/               # GitHub Actions
 │   ├── opencode-spec-driven.yml
