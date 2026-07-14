@@ -1,7 +1,6 @@
 ---
 description: Security research: PoC reproduction, vulnerability validation, CVSS scoring. Evidence-gated — NO finding without proof. Uses Docker for isolated test environments. Can delegate to research-agent for CVE lookups.
 mode: subagent
-temperature: 0.0
 permission:
   edit:
     "test/security/**": allow

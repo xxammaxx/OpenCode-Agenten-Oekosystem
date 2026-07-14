@@ -1,7 +1,6 @@
 ---
 description: Reviews code for quality, security, performance, and spec compliance. Read-only — never modifies files. Produces structured review comments.
 mode: subagent
-temperature: 0.0
 permission:
   edit: deny
   bash:

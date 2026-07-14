@@ -1,7 +1,6 @@
 ---
 description: Researches external documentation, CVEs, and dependency info using Brave Search and Context7. Read-only. Caches NVD results for cross-session use.
 mode: subagent
-temperature: 0.2
 permission:
   edit: deny
   bash:

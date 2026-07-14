@@ -1,7 +1,6 @@
 ---
 description: Validates database migrations: schema changes, rollback safety, data integrity checks. Limited write access — only to migration files and test databases.
 mode: subagent
-temperature: 0.0
 permission:
   edit:
     "migrations/**": allow

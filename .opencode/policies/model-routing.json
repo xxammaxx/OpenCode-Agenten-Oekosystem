@@ -1,91 +1,54 @@
 {
-  "version": "1.0.0",
-  "description": "Model routing rules for task-to-model assignment, supporting local (Ollama/GTX1070) and cloud (Anthropic) models.",
-
-  "routing_rules": [
+  "version": "2.0.0",
+  "description": "Capability-based routing guidance. Model and provider mapping remain user-configurable and are never forced by the ecosystem.",
+  "routing_profiles": [
     {
-      "task_pattern": ["code review", "lint", "typecheck"],
-      "model": "opencode/claude-haiku-4-5",
-      "local_fallback": "ollama/gemma3:12b",
-      "temperature": 0.0,
-      "max_tokens": 4096
+      "profile": "heavy_reasoning",
+      "use_cases": ["architecture", "planning", "specification", "complex refactor", "security validation"],
+      "characteristics": ["deep context", "high reliability", "long-horizon consistency"],
+      "notes": "Map to whichever model the target project already prefers."
     },
     {
-      "task_pattern": ["implement", "refactor", "security research", "security scan"],
-      "model": "opencode/claude-sonnet-4",
-      "local_fallback": "ollama/qwen2.5:14b",
-      "temperature": 0.1,
-      "max_tokens": 8192
+      "profile": "fast_review",
+      "use_cases": ["code review", "lint", "typecheck", "documentation review"],
+      "characteristics": ["low latency", "deterministic output", "compact reasoning"],
+      "notes": "Use for quick analysis and review passes."
     },
     {
-      "task_pattern": ["architecture", "planning", "specification", "design"],
-      "model": "opencode/claude-sonnet-4",
-      "local_fallback": null,
-      "temperature": 0.1,
-      "max_tokens": 8192
+      "profile": "local_fallback",
+      "use_cases": ["offline work", "provider outage", "privacy-first execution"],
+      "characteristics": ["local runtime", "no external dependency", "reduced latency"],
+      "notes": "Keep this optional and project-configurable."
     },
     {
-      "task_pattern": ["documentation", "release notes", "changelog", "README"],
-      "model": "opencode/claude-haiku-4-5",
-      "local_fallback": "ollama/gemma3:12b",
-      "temperature": 0.2,
-      "max_tokens": 4096
+      "profile": "vision",
+      "use_cases": ["screenshots", "mockups", "visual QA"],
+      "characteristics": ["image understanding", "visual comparison"],
+      "notes": "Only use when the project actually needs image-aware work."
     },
     {
-      "task_pattern": ["compliance check", "dsgvo audit", "data protection"],
-      "model": "opencode/claude-haiku-4-5",
-      "local_fallback": "ollama/gemma3:12b",
-      "temperature": 0.0,
-      "max_tokens": 4096
-    },
-    {
-      "task_pattern": ["visual qa", "screenshot analysis", "playwright"],
-      "model": "opencode/claude-sonnet-4",
-      "local_fallback": "ollama/qwen2.5:14b",
-      "temperature": 0.1,
-      "max_tokens": 4096
-    },
-    {
-      "task_pattern": ["migration", "database", "schema change"],
-      "model": "opencode/claude-sonnet-4",
-      "local_fallback": null,
-      "temperature": 0.0,
-      "max_tokens": 8192
-    },
-    {
-      "task_pattern": ["funding proposal", "funding document"],
-      "model": "opencode/claude-haiku-4-5",
-      "local_fallback": "ollama/gemma3:12b",
-      "temperature": 0.3,
-      "max_tokens": 8192
+      "profile": "browser_automation",
+      "use_cases": ["playwright", "web journeys", "end-to-end checks"],
+      "characteristics": ["tool use", "page interaction", "deterministic browser steps"],
+      "notes": "Keep browser automation separate from code-only workflows."
     }
   ],
-
-  "local_model_config": {
-    "provider": "ollama",
-    "base_url": "http://localhost:11434/v1",
-    "models": {
-      "gemma3:12b": {
-        "ctx_size": 8192,
-        "temperature": 0.0,
-        "gpu_layers": 28,
-        "description": "Lightweight model for code review, linting, and documentation"
-      },
-      "qwen2.5:14b": {
-        "ctx_size": 8192,
-        "temperature": 0.1,
-        "gpu_layers": 24,
-        "description": "General purpose model for implementation and research"
-      }
+  "selection_rules": [
+    {
+      "when": "existing project config defines a provider or model",
+      "action": "preserve"
     },
-    "max_concurrent_requests": 1,
-    "request_timeout_ms": 300000
-  },
-
+    {
+      "when": "a user supplies explicit model mappings",
+      "action": "use_mapping"
+    },
+    {
+      "when": "no model is configured",
+      "action": "do_not_force_a_default"
+    }
+  ],
   "fallback_strategy": {
-    "description": "When cloud models are unavailable, fall back to local models",
-    "priority": ["local", "cloud"],
-    "max_retries": 2,
-    "retry_delay_ms": 5000
+    "provider_neutral": true,
+    "notes": "Use whichever provider the project already uses. Do not force Claude, OpenAI, DeepSeek, Ollama, or any other vendor in the bootstrap."
   }
 }
