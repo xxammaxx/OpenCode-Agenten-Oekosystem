@@ -47,7 +47,7 @@ Source:
 
 - The repository currently has uncommitted changes in `README.md` and `opencode.jsonc`.
 - The current branch is `master`.
-- The remote is `origin` at `https://github.com/xxammaxx/OpenCode-Agenten-Oekosystem.git`.
+- The remote is `origin` at `https://github.com/<org>/OpenCode-Agenten-Oekosystem.git`.
 - No open GitHub issues were returned by `gh issue list`.
 - `gh pr list` could not complete because the GitHub API was unreachable in this environment.
 

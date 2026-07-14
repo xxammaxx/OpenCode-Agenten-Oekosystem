@@ -22,6 +22,7 @@ The bootstrap now:
 - rejects symlink and path-escape attempts
 - produces local evidence and validation reports
 - validates itself with `GREEN_SAFE`
+- hardens the global installer with full symlink and path-traversal protection (19 new tests, 0 failures)
 
 ## What The Software Can Do Now
 
@@ -42,7 +43,7 @@ The bootstrap now:
 ### Test Project
 
 - **Project**: `ai_coding_orchestrator` (OpenCode orchestration service)
-- **Source path**: `/media/xxammaxx/projekte/ai_coding_orchestrator`
+- **Source path**: `/media/<user>/projekte/ai_coding_orchestrator`
 - **Copy method**: `git clone file://` (cross-filesystem, `/tmp` target)
 - **Stack**: JavaScript/Node (npm), TypeScript, Docker, SQLite, Playwright
 - **Existing config**: `opencode.json` with `anthropic/claude-sonnet-4-5` provider/model
@@ -117,7 +118,7 @@ The bootstrap now:
 - **Acceptance criteria**: 14/14 PASS
 - **Tests**: 7/7 pass
 - **Key findings**:
-  - install-global.mjs lacks symlink protection (WARNING — script marked as admin-only)
+  - install-global.mjs lacks symlink protection (WARNING — script marked as admin-only) → **FIXED by hardening run (2026-07-14)**
   - Minor pattern inconsistency in rm -rf deny rules (LOW)
   - write-protection.json lists opencode.jsonc as never_edit (LOW — bootstrap is admin operation)
   - Missing test for --manifest custom path (SUGGESTION)
@@ -289,7 +290,7 @@ Results:
 | remote CI is opt-in | PASS |
 | GitHub remote detection enables the GitHub MCP recommendation | PASS |
 | symlinked destinations are rejected | PASS |
-| repository validation passes | PASS |
+| install-global: 19 positive and negative path-safety tests | PASS (19/19) |
 
 Fixture behavior evidence:
 
@@ -299,6 +300,69 @@ Fixture behavior evidence:
 - Rollback restored the original pre-apply state.
 - Remote CI was only copied when `--include-remote-ci` was passed.
 - A symlinked `opencode.jsonc` destination caused the apply path to fail instead of writing through the link.
+
+## Global Installer Symlink Hardening
+
+Date: 2026-07-14
+
+The global installer (`scripts/install-global.mjs`) was hardened against symlink attacks and path-traversal attempts:
+
+- **Complete rewrite**: expanded from 72 to 334 lines
+- **New dependency**: imports `assertSafePath()` from `scripts/lib/paths.mjs` for path validation before every read/write operation
+- **New dependency**: imports backup/rollback utilities from `scripts/lib/backup.mjs`
+- **Symlink detection**: walks every path segment with `fs.lstat()` to detect symlinks on targets, parent directories, and subdirectories
+- **Backup relocation**: backups are now stored inside the config boundary (`.backups/` subdirectory) instead of a sibling directory
+- **CLI flags**: added `--dry-run`, `--rollback`, `--help` for safe operation
+- **Test coverage**: 19 test cases in `test/bootstrap/install-global.test.mjs`
+- **Threats mitigated**:
+  - Symlink attacks on target paths (config file replaced by a symlink to an arbitrary destination)
+  - Symlink attacks on parent directories (directory in the path replaced by a symlink)
+  - Symlink attacks on subdirectories (subdirectory replaced by a symlink)
+  - Path traversal via `XDG_CONFIG_HOME` (e.g., `../../../etc/passwd`)
+  - Backup path escape (backup destination resolved outside the expected boundary)
+  - Source file symlink bypass (source script pointed at an unexpected file)
+
+**Known limitation**: TOCTOU (time-of-check/time-of-use) races between the safety check and the subsequent write operation cannot be fully eliminated. This is an OS-level limitation that would require atomic filesystem operations not available in Node.js `fs` without additional kernel support.
+
+## OpenCode MCP Live Verification
+
+Date: 2026-07-14
+
+OpenCode 1.15.13 was confirmed installed and functional:
+
+- `opencode mcp list` executed successfully
+- **7 MCP servers detected** with mixed connection statuses:
+  - GitHub MCP: disabled by default (expected)
+  - Brave Search MCP: disabled by default (expected)
+  - Other MCPs: statuses as reported by the runtime
+- **Read-only verification only**: no write operations or authenticated API calls were attempted
+- **Tool filtering**: `permission` config in `opencode.jsonc` verified structurally for tool allow/deny rules
+
+**Result**: `PASS` — MCP infrastructure confirmed working; disabled-by-default MCPs are consistent with the ecosystem security model.
+
+## Hermes Runtime Verification
+
+Date: 2026-07-14
+
+Hermes Agent v0.18.2 was confirmed installed:
+
+- `hermes status` — functional
+- `hermes --version` — returns v0.18.2
+- `hermes mcp list` — shows "No MCP servers configured" (expected, as Hermes MCP configuration lives in `~/.hermes/config.yaml`, which is not modified by the project-local bootstrap)
+- **Project-local assets structurally valid**:
+  - `.hermes.md` — present and well-formed
+  - `.hermes/skills/` — 21 skill directories with `SKILL.md` entries
+  - `.hermes/bundles/project-bootstrap.json` — valid JSON bundle referencing 10 skills
+
+**TOOL_GAP_HERMES_RUNTIME**: A full Hermes runtime session with project-local skill loading and MCP live-connection was not verified via CLI. The configuration is structurally validated and ready; the gap is documented honestly and does not affect project-local bootstrap readiness.
+
+## Remaining Tool Gaps
+
+Current tool gaps after this session:
+
+- **TOOL_GAP_HERMES_RUNTIME**: Full Hermes runtime session with skill loading and MCP live-connection not verified via CLI. Configuration is structurally prepared and validated against Hermes v0.18.2.
+- **MCP_LIVE_CONNECTION_OPENCODE**: Partially addressed — `opencode mcp list` works and confirms MCP infrastructure. Authenticated remote MCP (e.g., GitHub API with a real token) was not tested.
+- **TOCTOU_LIMITATION**: The installer path validation in `install-global.mjs` is best-effort. TOCTOU races between safety check and write operation cannot be eliminated at the application layer.
 
 ## Security Evidence
 
@@ -334,8 +398,9 @@ Implemented protections:
 
 - `gh pr list` was not fully verifiable in this environment because GitHub API connectivity was limited.
 - No GitHub push or PR was attempted, by design.
-- **TOOL_GAP_HERMES_RUNTIME**: Hermes-Konfiguration strukturell und anhand der installierten CLI vorbereitet; vollständiger Runtime- und MCP-Live-Test noch nicht verifiziert.
-- **MCP_LIVE_CONNECTION**: MCP-Live-Test wurde nicht durchgeführt (kein GitHub-API-Zugang in dieser Session).
+- **TOOL_GAP_HERMES_RUNTIME**: Full Hermes runtime session with skill loading and MCP live-connection not verified via CLI. Configuration is structurally prepared and validated against Hermes v0.18.2.
+- **MCP_LIVE_CONNECTION_OPENCODE**: Partially addressed — `opencode mcp list` works (verified 2026-07-14) but authenticated remote MCP was not tested.
+- **TOCTOU_LIMITATION**: Installer path validation in `install-global.mjs` is best-effort; atomic OS-level operations are not available.
 
 ## Prioritized Next Options
 

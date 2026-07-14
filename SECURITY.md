@@ -25,6 +25,19 @@ Sensitive configuration is managed exclusively via environment variables or the 
 - Discovery should use file presence and non-secret metadata only.
 - Reports should redact any values that may have been discovered incidentally.
 
+## Global Installer Security
+
+The global installer (`scripts/install-global.mjs`) implements path-safety protections:
+
+- `assertSafePath()` validates every filesystem path before reads and writes
+- Symlink attacks are detected by walking every path segment with `fs.lstat()`
+- Path traversal via `XDG_CONFIG_HOME` is blocked
+- Backups are stored within the config boundary (`.backups/`) to prevent backup-path escape
+- `--dry-run` and `--rollback` flags are available for safe operation
+- 19 test cases cover positive and negative path-safety scenarios
+
+**Important**: The global installer should never be run as root or with `sudo`. It operates on user-level configuration paths and does not require elevated privileges.
+
 ## MCP Security
 
 See `.opencode/policies/mcp-trust-tiers.json` for the trust-tier model.
