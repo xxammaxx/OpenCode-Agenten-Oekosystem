@@ -14,6 +14,14 @@ const IGNORE_DIRS = new Set([
   ".opencode/memory",
 ])
 
+const IGNORE_DIR_NAMES = new Set([
+  ".git",
+  "node_modules",
+  "dist",
+  "build",
+  "coverage",
+])
+
 function addSignal(bucket, id, filePath, notes = []) {
   const existing = bucket.get(id)
   if (existing) {
@@ -38,6 +46,7 @@ async function walk(root, dir = root, depth = 0, maxDepth = 4, files = []) {
       continue
     }
     if (entry.isDirectory()) {
+      if (IGNORE_DIR_NAMES.has(entry.name)) continue
       await walk(root, absolute, depth + 1, maxDepth, files)
     } else {
       files.push(relative)

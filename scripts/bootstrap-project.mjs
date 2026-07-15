@@ -206,7 +206,7 @@ async function buildOverlay({ manifest, discovery, selected, mcpSelection, sourc
   const overlays = []
   const conflicts = []
 
-  await recordTopLevelConflict(targetRoot, path.join(targetRoot, "opencode.jsonc"), conflicts, "OpenCode config")
+  await recordTopLevelConflict(targetRoot, path.join(targetRoot, "opencode.jsonc"), conflicts, "OpenCode config", { merged: true })
   overlays.push({
     destination: path.join(targetRoot, "opencode.jsonc"),
     kind: "config",
@@ -434,8 +434,9 @@ async function collectTreeFiles(sourceDir, destinationDir, sourceRoot, targetRoo
   return files
 }
 
-async function recordTopLevelConflict(targetRoot, destination, conflicts, label) {
+async function recordTopLevelConflict(targetRoot, destination, conflicts, label, { merged = false } = {}) {
   if (await pathExists(destination)) {
-    conflicts.push(`existing file preserved: ${relativePath(targetRoot, destination)} (${label})`)
+    const verb = merged ? "existing file will be merged" : "existing file preserved"
+    conflicts.push(`${verb}: ${relativePath(targetRoot, destination)} (${label})`)
   }
 }

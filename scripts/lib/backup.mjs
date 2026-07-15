@@ -67,7 +67,7 @@ export async function createBackup({ targetRoot, files, backupRoot }) {
   return { backupDir, manifest }
 }
 
-export async function restoreBackup({ backupRoot }) {
+export async function restoreBackup({ backupRoot, expectedTargetRoot }) {
   const root = toAbsolutePath(backupRoot)
   const manifestPath = path.join(root, "backup-manifest.json")
   if (!(await pathExists(manifestPath))) {
@@ -76,6 +76,10 @@ export async function restoreBackup({ backupRoot }) {
 
   const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"))
   const targetRoot = manifest.target_root
+
+  if (expectedTargetRoot && toAbsolutePath(expectedTargetRoot) !== targetRoot) {
+    throw new Error(`Backup target_root (${targetRoot}) does not match expected (${expectedTargetRoot})`)
+  }
 
   for (const entry of manifest.files) {
     const destination = path.resolve(targetRoot, entry.path)

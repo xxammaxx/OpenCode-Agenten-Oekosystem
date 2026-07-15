@@ -29,6 +29,12 @@ const globalConfigRoot = path.join(
 // ---------------------------------------------------------------------------
 const args = parseArgs(process.argv.slice(2))
 
+if (process.getuid && process.getuid() === 0) {
+  console.error("Error: install-global.mjs must not be run as root or with sudo.")
+  console.error("It operates on user-level configuration paths only.")
+  process.exit(1)
+}
+
 if (args.help) {
   printHelp()
   process.exit(0)
@@ -169,7 +175,7 @@ async function dryRun() {
 async function rollbackFromBackup(backupDir) {
   const absBackup = toAbsolutePath(backupDir)
   await assertSafePath(absBackup, `${absBackup}/backup-manifest.json`, "backup manifest")
-  const result = await restoreBackup({ backupRoot: absBackup })
+  const result = await restoreBackup({ backupRoot: absBackup, expectedTargetRoot: globalConfigRoot })
   console.log(`Rollback completed for ${result.targetRoot}`)
   console.log("GREEN_SAFE")
 }
@@ -313,6 +319,9 @@ function parseArgs(argv) {
       result.dryRun = true
     } else if (arg === "--rollback") {
       result.rollback = argv[++i]
+      if (!result.rollback) {
+        throw new Error("--rollback requires a backup directory path")
+      }
     } else {
       throw new Error(`Unknown argument: ${arg}`)
     }

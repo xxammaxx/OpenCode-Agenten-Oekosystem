@@ -8,7 +8,7 @@ import { loadManifest, selectManifestRecommendations } from "./lib/manifest.mjs"
 import { buildOpenCodeOverlay, writeOpenCodeConfig, mergeOpenCodeMarkdown } from "./lib/opencode.mjs"
 import { buildHermesBundle, buildHermesGatewayNote, buildHermesReadmeMarkdown, buildHermesRootMarkdown } from "./lib/hermes.mjs"
 import { createBackup, restoreBackup } from "./lib/backup.mjs"
-import { ensureDirectory, pathExists, readTextIfExists, writeText, relativePath, toAbsolutePath, assertSafePath } from "./lib/paths.mjs"
+import { ensureDirectory, ensureParentDirectory, pathExists, readTextIfExists, writeText, relativePath, toAbsolutePath, assertSafePath } from "./lib/paths.mjs"
 import { renderDiscoveryMarkdown, renderPlanMarkdown, writeJsonReport, writeMarkdownReport } from "./lib/report.mjs"
 import { selectMcpCandidates } from "./lib/mcp.mjs"
 import { mergeDeep } from "./lib/merge.mjs"
@@ -113,11 +113,11 @@ function printHelp() {
 }
 
 function classify(discovery, selected, mcpSelection, overlay) {
-  if (overlay.conflicts.length > 0) {
-    return "AMBER_REVIEW"
-  }
   if (discovery.signals.some((signal) => signal.id === "tierheim-signals") && !selected.skills.includes("tierheim-compliance")) {
     return "RED_BLOCK"
+  }
+  if (overlay.conflicts.length > 0) {
+    return "AMBER_REVIEW"
   }
   if (mcpSelection.remote_ci_requested) {
     return "AMBER_REVIEW"
@@ -305,8 +305,13 @@ async function syncTree(sourceDir, destinationDir, sourceRoot, targetRoot) {
       }
       await syncTree(sourcePath, destinationPath, sourceRoot, targetRoot)
     } else {
-      const existing = await pathExists(destinationPath)
-      if (existing) continue
+      const destinationStat = await fs.lstat(destinationPath).catch(() => null)
+      if (destinationStat) {
+        if (destinationStat.isSymbolicLink()) {
+          throw new Error(`Refusing to overwrite symlink at destination: ${destinationPath}`)
+        }
+        continue
+      }
       await ensureParentDirectory(destinationPath)
       await fs.copyFile(sourcePath, destinationPath)
     }

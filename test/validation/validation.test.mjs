@@ -78,9 +78,9 @@ async function collectFiles(root) {
   async function walk(current) {
     const entries = await fs.readdir(current, { withFileTypes: true })
     for (const entry of entries) {
-      if (IGNORE_DIRS.has(entry.name)) continue
+      const relative = path.relative(root, path.join(current, entry.name)).split(path.sep).join("/")
+      if (IGNORE_DIRS.has(entry.name) || [...IGNORE_DIRS].some((prefix) => relative.startsWith(`${prefix}/`))) continue
       const absolute = path.join(current, entry.name)
-      const relative = path.relative(root, absolute).split(path.sep).join("/")
       if (entry.isDirectory()) {
         await walk(absolute)
       } else if (/\.(md|mjs|json|jsonc|toml|yml|yaml|ts|tsx|py)$/i.test(entry.name)) {
