@@ -242,7 +242,7 @@ registerKernelGate('NO_PRODUCTION_WRITE_WITHOUT_APPROVAL', 'Production data writ
 
 // 7. NO_REMOTE_ACTION_WITHOUT_SCOPED_APPROVAL
 registerKernelGate('NO_REMOTE_ACTION_WITHOUT_SCOPED_APPROVAL', 'Remote actions require scoped approval.', (ctx) => {
-  const remoteActions = ['git push', 'gh pr create', 'gh issue create', 'git push', 'npm publish', 'docker push', 'curl', 'wget'];
+  const remoteActions = ['git push', 'gh pr create', 'gh issue create', 'npm publish', 'docker push', 'curl', 'wget'];
   const isRemote = (
     ctx.isRemote === true ||
     remoteActions.some(pattern => (ctx.command || '').toLowerCase().includes(pattern)) ||

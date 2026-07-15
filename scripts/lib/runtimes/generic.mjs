@@ -99,7 +99,7 @@ export function validate(context = {}) {
     findings: [
       {
         type: 'WARNING',
-        message: 'Runtime is unknown/genetic. Only kernel gates can be verified.'
+        message: 'Runtime is unknown/generic. Only kernel gates can be verified.'
       }
     ],
     toolGaps: ['UNKNOWN_RUNTIME'],
