@@ -2,62 +2,64 @@
 
 ## Supported Versions
 
-The latest release is currently supported with security updates.
+The current repository tip is supported with security updates.
 
-## Reporting a Vulnerability
+## Reporting A Vulnerability
 
-We take security vulnerabilities seriously. If you discover a security issue, please follow responsible disclosure:
-
-1. **Do not** open a public GitHub issue
-2. Email the maintainer or open a private security advisory at:
-   https://github.com/xxammaxx/OpenCode-Agenten-Oekosystem/security/advisories/new
-
-We will acknowledge receipt within 48 hours and provide an estimated timeline for a fix.
+If you discover a security issue, do not open a public issue. Use a private security advisory or contact the maintainer through the repository security channel.
 
 ## Secrets Management
 
-### Environment Variables
-
-Sensitive configuration is managed exclusively via environment variables:
-
-| Variable | Purpose | Required |
-|----------|---------|----------|
-| `GITHUB_TOKEN` | GitHub API authentication | Yes |
-| `ANTHROPIC_API_KEY` | Anthropic Claude API | For cloud models |
-| `BRAVE_API_KEY` | Brave Search MCP | For research agent |
-| `OPENAI_API_KEY` | OpenAI API (optional) | No |
-| `NODE_ENV` | Runtime environment | Yes |
+Sensitive configuration is managed exclusively via environment variables or the user’s existing secret store.
 
 ### Prohibited Practices
-- **Never** commit `.env` files or real secrets to version control
-- **Never** hardcode API keys, tokens, or passwords in source code
-- **Never** log sensitive values to stdout or log files
-- **Never** expose secrets in error messages
 
-### Secret Rotation
-- GitHub tokens should be rotated every 90 days minimum
-- Immediately revoke any token that may have been exposed
-- Use fine-grained tokens with minimal required permissions
+- Never commit `.env` files or real secrets to version control.
+- Never hardcode API keys, tokens, passwords, or signed URLs in source code.
+- Never log sensitive values to stdout or log files.
+- Never expose secrets in error messages.
+
+### Principle
+
+- The bootstrap must never read secret contents to make a routing decision.
+- Discovery should use file presence and non-secret metadata only.
+- Reports should redact any values that may have been discovered incidentally.
+
+## Global Installer Security
+
+The global installer (`scripts/install-global.mjs`) implements path-safety protections:
+
+- `assertSafePath()` validates every filesystem path before reads and writes
+- Symlink attacks are detected by walking every path segment with `fs.lstat()`
+- Path traversal via `XDG_CONFIG_HOME` is blocked
+- Backups are stored within the config boundary (`.backups/`) to prevent backup-path escape
+- `--dry-run` and `--rollback` flags are available for safe operation
+- 19 test cases cover positive and negative path-safety scenarios
+
+**Important**: The global installer should never be run as root or with `sudo`. It operates on user-level configuration paths and does not require elevated privileges.
 
 ## MCP Security
 
-See `.opencode/policies/mcp-trust-tiers.json` for the complete MCP security model.
+See `.opencode/policies/mcp-trust-tiers.json` for the trust-tier model.
 
 Key principles:
-- All MCP servers start disabled, enabled per-agent
-- Tier 0 (Readonly) is the default for unknown MCPs
-- Tier 1 (Sandboxed) MCPs run with Docker security constraints
-- Tier 2 (Trusted) requires human approval gate
+
+- All MCP servers start disabled.
+- Tier 0 is the default for unknown MCPs.
+- Tier 1 MCPs are sandboxed and remain opt-in.
+- Tier 2 MCPs require a human approval gate.
+- No uncontrolled `npx -y` execution.
 
 ## Dependency Security
-- `npm audit` should be run before every release
-- Dependencies should be updated regularly
-- Review `package-lock.json` changes for unexpected dependency changes
-- Pin dependency versions in production
+
+- Run local validation before every release.
+- Review dependency changes for unexpected updates.
+- Prefer pinned versions when a dependency is required.
 
 ## Agent Security
-- Agents never have write access to production data
-- Evidence gates prevent hallucinated security claims
-- Audit trails track every AI decision
-- Human-in-the-loop for all destructive operations
-- Cross-agent validation for critical claims
+
+- Agents never have write access to production data.
+- Evidence gates prevent hallucinated security claims.
+- Audit trails track every AI decision.
+- Human-in-the-loop for destructive operations.
+- Cross-agent validation for critical claims.

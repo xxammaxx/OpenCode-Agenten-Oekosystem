@@ -1,7 +1,6 @@
 ---
 description: Reviews architecture decisions, dependency graphs, and coupling. Read-only for code, produces Architecture Decision Records (ADRs). Evaluates alternatives and documents tradeoffs.
 mode: subagent
-temperature: 0.1
 permission:
   edit:
     "docs/adr/**": ask

@@ -1,7 +1,6 @@
 ---
 description: Executes visual regression tests via Playwright: screenshots, DOM snapshots, accessibility checks, visual diff classification. Write access limited to screenshot and report directories.
 mode: subagent
-temperature: 0.1
 permission:
   edit:
     "e2e-screenshots/**": allow

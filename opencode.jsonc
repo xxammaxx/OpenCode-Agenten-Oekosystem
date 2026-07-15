@@ -1,9 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
 
-  "model": "opencode/claude-sonnet-4",
-  "small_model": "opencode/claude-haiku-4-5",
-
   "default_agent": "issue-orchestrator",
 
   "share": "disabled",
@@ -20,9 +17,9 @@
     "prettier": { "disabled": false }
   },
 
-  "shell": "pwsh",
-
   "instructions": [
+    "BOOTSTRAP.md",
+    "README.md",
     "AGENTS.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
@@ -30,38 +27,15 @@
     ".opencode/policies/mcp-trust-tiers.json",
     ".opencode/policies/write-protection.json",
     ".opencode/policies/data-retention.json",
-    ".opencode/policies/model-routing.json"
+    ".opencode/policies/model-routing.json",
+    "ecosystem.manifest.json"
   ],
-
-  "provider": {
-    "ollama": {
-      "baseURL": "http://localhost:11434/v1",
-      "apiKey": "ollama"
-    }
-  },
 
   "mcp": {
     "github": {
       "type": "remote",
       "url": "https://api.githubcopilot.com/mcp/",
       "headers": { "Authorization": "Bearer {env:GITHUB_TOKEN}" },
-      "enabled": false
-    },
-    "playwright": {
-      "type": "local",
-      "command": ["npx", "-y", "@anthropic/mcp-server-playwright"],
-      "enabled": false,
-      "timeout": 30000
-    },
-    "docker": {
-      "type": "local",
-      "command": ["npx", "-y", "@anthropic/mcp-server-docker"],
-      "enabled": false
-    },
-    "sqlite": {
-      "type": "local",
-      "command": ["npx", "-y", "@modelcontextprotocol/server-sqlite"],
-      "args": ["{env:PROJECT_ROOT}/data/local.db"],
       "enabled": false
     },
     "brave-search": {
@@ -74,7 +48,18 @@
       "type": "remote",
       "url": "https://mcp.context7.com/mcp",
       "enabled": false
-    }
+    },
+
+    // Self-hosted MCPs that expose SSE or streamable HTTP are often more
+    // reliable than local stdio processes in some OpenCode 1.15.x setups.
+    // For local-model runs that log a models.dev bootstrap fetch, export
+    // OPENCODE_DISABLE_MODELS_FETCH=1 before launching OpenCode.
+    // Example for a project-local SSE fallback:
+    // "my-self-hosted-mcp": {
+    //   "type": "remote",
+    //   "url": "http://127.0.0.1:50000/sse",
+    //   "enabled": false
+    // }
   },
 
   "tools": {
@@ -94,6 +79,11 @@
       "git diff *": "allow",
       "git log *": "allow",
       "git fetch *": "allow",
+      "node scripts/bootstrap-project.mjs *": "allow",
+      "node scripts/apply-repository-overlay.mjs *": "allow",
+      "node scripts/validate-ecosystem.mjs *": "allow",
+      "node --check *": "allow",
+      "node --test *": "allow",
       "npm test *": "allow",
       "npm run typecheck *": "allow",
       "npm run lint *": "allow",
@@ -123,7 +113,6 @@
     "issue-orchestrator": {
       "description": "Primary orchestrator: reads GitHub issues as source of truth, delegates to specialized subagents, enforces spec-driven workflow and evidence gates. Never implements directly — always delegates.",
       "mode": "primary",
-      "model": "opencode/claude-sonnet-4",
       "temperature": 0.1,
       "color": "#2563eb",
       "permission": {
@@ -136,6 +125,9 @@
           "gh issue view *": "allow",
           "gh issue comment *": "ask",
           "gh pr create *": "ask",
+          "node scripts/bootstrap-project.mjs *": "allow",
+          "node scripts/apply-repository-overlay.mjs *": "allow",
+          "node scripts/validate-ecosystem.mjs *": "allow",
           "npm test *": "allow",
           "grep *": "allow",
           "rg *": "allow"
@@ -160,7 +152,6 @@
 
     "plan": {
       "mode": "primary",
-      "model": "opencode/claude-haiku-4-5",
       "temperature": 0.0,
       "permission": {
         "edit": "deny",
@@ -181,7 +172,6 @@
 
     "build": {
       "mode": "primary",
-      "model": "opencode/claude-sonnet-4",
       "temperature": 0.2,
       "permission": {
         "edit": "ask",
@@ -193,6 +183,9 @@
           "git fetch *": "allow",
           "git commit *": "ask",
           "git push *": "deny",
+          "node scripts/bootstrap-project.mjs *": "allow",
+          "node scripts/apply-repository-overlay.mjs *": "allow",
+          "node scripts/validate-ecosystem.mjs *": "allow",
           "npm test *": "allow",
           "npm run typecheck *": "allow",
           "npm run lint *": "allow",
@@ -206,7 +199,6 @@
     "review-agent": {
       "description": "Reviews code for quality, security, performance, and spec compliance. Read-only — never modifies files.",
       "mode": "subagent",
-      "model": "opencode/claude-haiku-4-5",
       "temperature": 0.0,
       "permission": {
         "edit": "deny",
@@ -231,7 +223,6 @@
     "research-agent": {
       "description": "Researches external documentation, CVEs, and dependency info using Brave Search and Context7. Read-only.",
       "mode": "subagent",
-      "model": "opencode/claude-sonnet-4",
       "temperature": 0.2,
       "permission": {
         "edit": "deny",
@@ -255,7 +246,6 @@
     "compliance-agent": {
       "description": "Audits GDPR/DSGVO compliance, data minimization, and consent validation. Read-only for canonical data.",
       "mode": "subagent",
-      "model": "opencode/claude-haiku-4-5",
       "temperature": 0.0,
       "permission": {
         "edit": "deny",
@@ -276,7 +266,6 @@
     "migration-agent": {
       "description": "Validates database migrations: schema changes, rollback safety, data integrity. Limited write access.",
       "mode": "subagent",
-      "model": "opencode/claude-sonnet-4",
       "temperature": 0.0,
       "permission": {
         "edit": {
@@ -306,7 +295,6 @@
     "playwright-agent": {
       "description": "Executes visual regression tests via Playwright: screenshots, DOM snapshots, accessibility checks.",
       "mode": "subagent",
-      "model": "opencode/claude-sonnet-4",
       "temperature": 0.1,
       "permission": {
         "edit": {
@@ -332,7 +320,6 @@
     "architecture-agent": {
       "description": "Reviews architecture decisions, dependency graphs, and coupling. Read-only, produces ADRs.",
       "mode": "subagent",
-      "model": "opencode/claude-sonnet-4",
       "temperature": 0.1,
       "permission": {
         "edit": {
@@ -357,7 +344,6 @@
     "security-agent": {
       "description": "Security research: PoC reproduction, vulnerability validation, CVSS scoring. Evidence-gated — no finding without proof.",
       "mode": "subagent",
-      "model": "opencode/claude-sonnet-4",
       "temperature": 0.0,
       "permission": {
         "edit": {
@@ -392,7 +378,6 @@
     "documentation-agent": {
       "description": "Generates and maintains documentation, wiki pages, and release notes. Write access to docs/ only.",
       "mode": "subagent",
-      "model": "opencode/claude-haiku-4-5",
       "temperature": 0.2,
       "permission": {
         "edit": {

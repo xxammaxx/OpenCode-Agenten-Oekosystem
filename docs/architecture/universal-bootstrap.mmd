@@ -1,0 +1,61 @@
+flowchart LR
+  subgraph Input
+    A[Repository URL]
+    B[Target project path]
+    C[Opt-in flags]
+  end
+
+  subgraph Discovery
+    D[Read repo instructions]
+    E[Scan target project]
+    F[Detect language framework tests DB CI PII]
+  end
+
+  subgraph Selection
+    G[Load ecosystem.manifest.json]
+    H[Select agents]
+    I[Select skills]
+    J[Select MCPs]
+    K[Select policies]
+  end
+
+  subgraph Safety
+    L[Dry-run report]
+    M[Backup manager]
+    N[Rollback manifest]
+    O[Conflict classification]
+  end
+
+  subgraph Outputs
+    P[OpenCode project config]
+    Q[Hermes portable bundle]
+    R[Discovery report]
+    S[Validation report]
+    T[Run report]
+  end
+
+  A --> D
+  B --> E
+  C --> D
+  D --> G
+  E --> F
+  F --> G
+  G --> H
+  G --> I
+  G --> J
+  G --> K
+  H --> L
+  I --> L
+  J --> L
+  K --> L
+  L --> O
+  O -->|apply| M
+  M --> P
+  M --> Q
+  M --> R
+  M --> S
+  P --> T
+  Q --> T
+  R --> T
+  S --> T
+

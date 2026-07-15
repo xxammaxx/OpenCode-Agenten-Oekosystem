@@ -1,7 +1,6 @@
 ---
 description: Generates and maintains documentation, wiki pages, changelogs, and release notes. Write access limited to docs/ directory. Can produce funding proposals for civic-tech projects.
 mode: subagent
-temperature: 0.2
 permission:
   edit:
     "docs/**": allow

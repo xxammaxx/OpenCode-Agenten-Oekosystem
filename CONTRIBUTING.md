@@ -1,28 +1,26 @@
 # Contributing
 
-This repository is designed to be installed into OpenCode and used as a shared agent ecosystem.
+This repository is a universal bootstrap kit for OpenCode and Hermes Agent.
 
-## Before you change anything
+## Before You Change Anything
 
 1. Read [AGENTS.md](AGENTS.md).
 2. Read [SECURITY.md](SECURITY.md).
-3. Read [opencode.jsonc](opencode.jsonc).
-4. If the change touches architecture, APIs, SDKs, MCP, providers, or security, use the read-before-sketch rule.
-5. Use the linked GitHub issue as the source of truth for implementation work.
+3. Read [BOOTSTRAP.md](BOOTSTRAP.md).
+4. Read [ecosystem.manifest.json](ecosystem.manifest.json).
+5. If the change touches architecture, APIs, SDKs, MCP, providers, or security, use the read-before-sketch rule.
 
-## Install on another computer
+## Bootstrap Modes
 
-Clone the repository and run:
-
-```bash
-node scripts/install-global.mjs
-```
-
-The installer backs up any existing `~/.config/opencode` configuration before copying the repo's OpenCode files.
+- Use `node scripts/bootstrap-project.mjs --target <project>` for a dry-run.
+- Add `--apply` only after reviewing the generated plan.
+- Add `--include-remote-ci` only when you explicitly want remote CI proposals.
+- Use `node scripts/install-global.mjs` only for the user-wide OpenCode mirror, not for target-project bootstrapping.
 
 ## Workflow
 
-- No implementation without issue context.
+- Prefer a GitHub issue when GitHub context exists.
+- Use the local run report when GitHub access is unavailable.
 - No architectural change without documented tradeoffs.
 - No change without tests or a clear reason tests could not run.
 - Do not commit secrets or local runtime artifacts.

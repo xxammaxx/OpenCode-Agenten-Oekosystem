@@ -1,7 +1,6 @@
 ---
 description: Audits GDPR/DSGVO compliance, data minimization, consent validation. Read-only for canonical data — never modifies production data. Produces compliance reports.
 mode: subagent
-temperature: 0.0
 permission:
   edit: deny
   bash:

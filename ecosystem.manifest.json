@@ -1,0 +1,405 @@
+{
+  "$schema": "./.opencode/validation/schema-validators/ecosystem-manifest-schema.json",
+  "version": "1.0.0",
+  "schema_version": "1.0.0",
+  "name": "universal-open-code-hermes-bootstrap",
+  "description": "Manifest for safe, project-local OpenCode and Hermes Agent bootstrap across heterogeneous repositories.",
+  "bootstrap": {
+    "default_mode": "dry-run",
+    "apply_flag": "--apply",
+    "rollback_flag": "--rollback",
+    "include_remote_ci_flag": "--include-remote-ci",
+    "classification_states": [
+      "GREEN_SAFE",
+      "AMBER_REVIEW",
+      "RED_BLOCK",
+      "TOOL_GAP"
+    ]
+  },
+  "supported_runtimes": {
+    "opencode": {
+      "min": "1.15.0",
+      "tested": "1.15.13"
+    },
+    "hermes": {
+      "min": "0.18.0",
+      "tested": "0.18.2"
+    }
+  },
+  "supported_os": [
+    "linux",
+    "macos",
+    "windows-powershell",
+    "windows-git-bash",
+    "wsl"
+  ],
+  "os_constraints": {
+    "path_mode": "native-separator-aware",
+    "absolute_user_paths_forbidden": true,
+    "fixed_shell_forbidden": true,
+    "symlink_escape_blocked": true
+  },
+  "environment_variables": [
+    "ANTHROPIC_API_KEY",
+    "BRAVE_API_KEY",
+    "GITHUB_TOKEN",
+    "OPENAI_API_KEY",
+    "OPENCODE_CONFIG",
+    "OPENCODE_CONFIG_DIR",
+    "OPENCODE_DISABLE_MODELS_FETCH",
+    "HERMES_ACCEPT_HOOKS",
+    "HERMES_INFERENCE_MODEL"
+  ],
+  "trust_tiers": {
+    "0_readonly": {
+      "description": "Read-only sources and documentation lookups.",
+      "allowed": [
+        "github read/search",
+        "context7",
+        "brave-search",
+        "web documentation"
+      ],
+      "default_enabled": false
+    },
+    "1_sandboxed": {
+      "description": "Project-local tools that may write only inside the target workspace or isolated containers.",
+      "allowed": [
+        "playwright",
+        "docker",
+        "sqlite"
+      ],
+      "default_enabled": false
+    },
+    "2_trusted": {
+      "description": "Human-gated external filesystem or production-adjacent systems.",
+      "allowed": [
+        "external filesystem",
+        "postgresql"
+      ],
+      "default_enabled": false
+    }
+  },
+  "tool_filter": {
+    "default": "deny",
+    "allow": [
+      "git status",
+      "git diff",
+      "git log",
+      "git fetch",
+      "node --check",
+      "node --test",
+      "node scripts/validate-ecosystem.mjs"
+    ],
+    "deny": [
+      "rm -rf",
+      "git push --force",
+      "DROP TABLE",
+      "DELETE FROM.*WHERE.*true",
+      "format C:"
+    ]
+  },
+  "activation_rules": {
+    "default": [
+      "project-local only",
+      "dry-run first",
+      "no secrets in reports",
+      "preserve existing providers and models",
+      "MCP servers remain disabled unless explicitly enabled"
+    ],
+    "remote_ci": [
+      "include only when --include-remote-ci is present",
+      "list concrete workflow files before copying",
+      "never enable GitHub Actions by default"
+    ]
+  },
+  "detectors": [
+    {
+      "id": "node-package-json",
+      "signals": ["package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock"],
+      "domain": "generic",
+      "recommend": ["project-reality-refresh", "run-card", "provider-neutral-config"]
+    },
+    {
+      "id": "python-project",
+      "signals": ["pyproject.toml", "requirements.txt", "uv.lock", "poetry.lock", "pipfile"],
+      "domain": "generic",
+      "recommend": ["project-reality-refresh", "run-card", "checkpoint-and-rollback"]
+    },
+    {
+      "id": "frontend-playwright",
+      "signals": ["playwright.config.*", "playwright.*", "vite.config.*", "next.config.*", "src/**/*.tsx", "src/**/*.vue", "src/**/*.svelte"],
+      "domain": "generic",
+      "recommend": ["mcp-selection", "living-truth-mirror", "remote-ci-approval-gate"]
+    },
+    {
+      "id": "sqlite-project",
+      "signals": ["*.sqlite", "*.sqlite3", "*.db", "*.db-wal", "*.db-shm"],
+      "domain": "generic",
+      "recommend": ["checkpoint-and-rollback", "mcp-selection"]
+    },
+    {
+      "id": "docker-project",
+      "signals": ["Dockerfile", "docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"],
+      "domain": "generic",
+      "recommend": ["mcp-selection", "worktree-safety"]
+    },
+    {
+      "id": "existing-opencode",
+      "signals": ["opencode.json", "opencode.jsonc", ".opencode/"],
+      "domain": "generic",
+      "recommend": ["provider-neutral-config", "project-bootstrap", "living-truth-mirror"]
+    },
+    {
+      "id": "existing-hermes",
+      "signals": [".hermes.md", ".hermes/"],
+      "domain": "generic",
+      "recommend": ["hermes-handoff", "project-bootstrap", "checkpoint-and-rollback"]
+    },
+    {
+      "id": "monorepo",
+      "signals": ["pnpm-workspace.yaml", "turbo.json", "nx.json", "lerna.json", "packages/*", "apps/*"],
+      "domain": "generic",
+      "recommend": ["run-card", "worktree-safety", "living-truth-mirror"]
+    },
+    {
+      "id": "civic-tech-pii",
+      "signals": ["consent", "adopter", "donor", "volunteer", "medical", "privacy", "retention"],
+      "domain": "conditional",
+      "recommend": ["tierheim-compliance", "living-truth-mirror", "checkpoint-and-rollback"]
+    },
+    {
+      "id": "tierheim-civipet",
+      "signals": ["tierheim", "civipet", "animal", "adoption", "foster", "vet"],
+      "domain": "domain_specific",
+      "recommend": ["tierheim-compliance", "mcp-selection", "remote-ci-approval-gate"]
+    },
+    {
+      "id": "github-remote",
+      "signals": [".git/config remote github.com", "origin github.com", "gh repo view"],
+      "domain": "conditional",
+      "recommend": ["remote-ci-approval-gate", "project-bootstrap"]
+    },
+    {
+      "id": "offline-or-local-only",
+      "signals": ["offline", "local-only", "air-gapped", "no network"],
+      "domain": "conditional",
+      "recommend": ["provider-neutral-config", "checkpoint-and-rollback", "mcp-selection"]
+    }
+  ],
+  "catalogs": {
+    "agents": {
+      "generic": [
+        {
+          "name": "issue-orchestrator",
+          "description": "Coordinates work, enforces evidence gates, and delegates. Never implements directly."
+        },
+        {
+          "name": "plan",
+          "description": "Produces the implementation plan without mutating files."
+        },
+        {
+          "name": "build",
+          "description": "Performs implementation after plan and validation gates are complete."
+        },
+        {
+          "name": "review-agent",
+          "description": "Reviews code, security, and regression risk without edits."
+        }
+      ],
+      "conditional": [
+        {
+          "name": "research-agent",
+          "description": "Verifies external documentation and dependency facts."
+        },
+        {
+          "name": "architecture-agent",
+          "description": "Documents architecture decisions and ADRs."
+        },
+        {
+          "name": "documentation-agent",
+          "description": "Maintains docs and release notes."
+        },
+        {
+          "name": "migration-agent",
+          "description": "Validates safe and reversible database changes."
+        },
+        {
+          "name": "playwright-agent",
+          "description": "Performs visual QA and accessibility checks."
+        }
+      ],
+      "domain_specific": [
+        {
+          "name": "security-agent",
+          "description": "Validates vulnerabilities only with reproducing evidence."
+        },
+        {
+          "name": "compliance-agent",
+          "description": "Audits DSGVO and data-minimization boundaries."
+        }
+      ],
+      "experimental": [
+        {
+          "name": "hermes-gateway-preview",
+          "description": "Optional OpenCode-to-Hermes gateway handoff pattern."
+        }
+      ],
+      "deprecated": [
+        {
+          "name": "legacy-global-only-bootstrap",
+          "description": "Old copy-everything installer behavior. Replaced by project-local bootstrap with backups."
+        },
+        {
+          "name": "fixed-shell-assumption",
+          "description": "Hardcoded shell settings such as pwsh. Replaced by environment-neutral detection."
+        }
+      ]
+    },
+    "skills": {
+      "generic": [
+        "project-reality-refresh",
+        "run-card",
+        "project-bootstrap",
+        "checkpoint-and-rollback",
+        "living-truth-mirror",
+        "provider-neutral-config",
+        "worktree-safety"
+      ],
+      "conditional": [
+        "mcp-selection",
+        "hermes-handoff",
+        "remote-ci-approval-gate"
+      ],
+      "domain_specific": [
+        "tierheim-compliance",
+        "funding-document-generator",
+        "playwright-visual-review",
+        "migration-review",
+        "security-evidence-gate"
+      ],
+      "experimental": [
+        "opencode-hermes-gateway"
+      ],
+      "deprecated": [
+        "legacy-global-copy",
+        "legacy-shell-pwsh"
+      ]
+    },
+    "policies": {
+      "generic": [
+        "evidence-gates",
+        "write-protection",
+        "mcp-trust-tiers"
+      ],
+      "conditional": [
+        "model-routing",
+        "data-retention"
+      ],
+      "domain_specific": [
+        "tierheim-retention"
+      ],
+      "experimental": [
+        "remote-ci-proposal"
+      ],
+      "deprecated": [
+        "allow-all-tools",
+        "copy-workflows-by-default"
+      ]
+    },
+    "mcp_servers": {
+      "generic": [
+        {
+          "name": "github",
+          "tier": "0_readonly",
+          "enabled_by_default": false
+        },
+        {
+          "name": "context7",
+          "tier": "0_readonly",
+          "enabled_by_default": false
+        },
+        {
+          "name": "brave-search",
+          "tier": "0_readonly",
+          "enabled_by_default": false
+        }
+      ],
+      "conditional": [
+        {
+          "name": "playwright",
+          "tier": "1_sandboxed",
+          "enabled_by_default": false
+        },
+        {
+          "name": "docker",
+          "tier": "1_sandboxed",
+          "enabled_by_default": false
+        },
+        {
+          "name": "sqlite",
+          "tier": "1_sandboxed",
+          "enabled_by_default": false
+        }
+      ],
+      "domain_specific": [
+        {
+          "name": "postgresql",
+          "tier": "2_trusted",
+          "enabled_by_default": false
+        },
+        {
+          "name": "filesystem",
+          "tier": "2_trusted",
+          "enabled_by_default": false
+        }
+      ],
+      "experimental": [
+        {
+          "name": "hermes-mcp-gateway",
+          "tier": "0_readonly",
+          "enabled_by_default": false
+        }
+      ],
+      "deprecated": [
+        {
+          "name": "npx-unnamed-local-install",
+          "reason": "Uncontrolled npx -y execution is not allowed in the universal bootstrap."
+        }
+      ]
+    }
+  },
+  "conflict_strategy": {
+    "json": "structural_deep_merge",
+    "text": "managed_section_overlay",
+    "backup_required": true,
+    "classification_on_conflict": "AMBER_REVIEW",
+    "classification_on_unsafe_change": "RED_BLOCK",
+    "managed_section_marker": "<!-- BEGIN OPENCODE-AGENT-ECOSYSTEM -->"
+  },
+  "install_targets": {
+    "opencode": [
+      "opencode.jsonc",
+      ".opencode/",
+      "AGENTS.md",
+      "CONTRIBUTING.md",
+      "SECURITY.md",
+      "BOOTSTRAP.md"
+    ],
+    "hermes": [
+      ".hermes.md",
+      ".hermes/",
+      "hermes/README.md"
+    ]
+  },
+  "remote_ci": {
+    "default_enabled": false,
+    "opt_in_flag": "--include-remote-ci",
+    "workflow_files": [
+      ".github/workflows/opencode-security-review.yml",
+      ".github/workflows/opencode-spec-driven.yml",
+      ".github/workflows/opencode-visual-qa.yml",
+      ".github/workflows/opencode-weekly-audit.yml"
+    ],
+    "policy": "proposal_only_until_explicitly_enabled"
+  }
+}
