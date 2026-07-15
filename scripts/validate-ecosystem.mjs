@@ -71,6 +71,7 @@ async function main() {
     "docs/reports/odysseus-integration-research.md",
     "docs/reports/gate-kernel-security-review.md",
     "docs/reports/gate-kernel-compliance-review.md",
+    "docs/reports/coderabbit-removal-report.md",
     "scripts/lib/gates/kernel.mjs",
     "scripts/lib/gates/approval.mjs",
     "scripts/lib/gates/evidence.mjs",
@@ -78,6 +79,7 @@ async function main() {
     "scripts/lib/gates/classifications.mjs",
     "scripts/lib/gates/context-fingerprint.mjs",
     "scripts/lib/gates/errors.mjs",
+    "scripts/lib/gates/policy.mjs",
     "scripts/lib/runtimes/contract.mjs",
     "scripts/lib/runtimes/generic.mjs",
     "scripts/lib/runtimes/opencode.mjs",
@@ -87,6 +89,8 @@ async function main() {
     "test/gates/kernel.test.mjs",
     "test/gates/approval.test.mjs",
     "test/gates/runtime-adapters.test.mjs",
+    "test/gates/comment-policy.test.mjs",
+    "LICENSE",
   ]
   issues.push(...await validateRequiredFiles(requiredFiles))
 
@@ -114,6 +118,7 @@ async function main() {
     "scripts/lib/gates/classifications.mjs",
     "scripts/lib/gates/context-fingerprint.mjs",
     "scripts/lib/gates/errors.mjs",
+    "scripts/lib/gates/policy.mjs",
     "scripts/lib/runtimes/contract.mjs",
     "scripts/lib/runtimes/generic.mjs",
     "scripts/lib/runtimes/opencode.mjs",

@@ -3,6 +3,7 @@
 **Datum:** 2026-07-15
 **Repository:** https://github.com/odysseus-dev/odysseus
 **Examined Branch:** `dev` (default; `main` stable)
+**Pinned Commit:** `c80462e4621c1a3360e5441843bb83b4691a8766` (dev HEAD, 2026-07-15)
 **License:** AGPL-3.0-or-later
 **Classification:** RESEARCH_ONLY — no code incorporation
 

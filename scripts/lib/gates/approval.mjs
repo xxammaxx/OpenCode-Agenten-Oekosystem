@@ -183,6 +183,23 @@ export function denyReceipt(receipt) {
  * @throws {CrossScopeApprovalViolation} if scope mismatch
  */
 export function consumeReceipt(receipt, currentContext = {}) {
+  // ── Nonce-Ledger First-Line Defense (prevents replay across references) ──
+  // This check catches replay even if the receipt object still shows APPROVED
+  // (since deepFreezeReceipt creates immutable copies, the original reference
+  // retains its APPROVED status after the first consumption).
+  if (isNonceConsumed(receipt.nonce)) {
+    // Also check the filesystem ledger for cross-process detection
+    const ledgerEntry = readReceiptFromLedger(receipt.nonce, currentContext.baseDir);
+    const consumedAt = ledgerEntry?.consumedAt || 'unknown';
+    throw new ApprovalReuseViolation({
+      evidence: {
+        nonce: receipt.nonce,
+        action: receipt.action,
+        consumedAt
+      }
+    });
+  }
+
   // Check status
   if (receipt.status === STATUS.CONSUMED) {
     throw new ApprovalReuseViolation({
@@ -258,12 +275,25 @@ export function consumeReceipt(receipt, currentContext = {}) {
     });
   }
 
-  // All checks passed — consume
-  return deepFreezeReceipt({
+  // All checks passed — mark nonce as consumed in memory AND persist to ledger
+  markNonceConsumed(receipt.nonce);
+
+  const consumedReceipt = {
     ...receipt,
     status: STATUS.CONSUMED,
     consumedAt: new Date().toISOString()
-  });
+  };
+
+  // Persist to filesystem ledger for cross-process enforcement
+  // (non-blocking — failures are logged but don't prevent consumption)
+  try {
+    writeReceiptToLedger(consumedReceipt, currentContext.baseDir);
+  } catch {
+    // Ledger write failure is non-fatal — in-memory nonce still provides
+    // single-process protection. Cross-process enforcement may be degraded.
+  }
+
+  return deepFreezeReceipt(consumedReceipt);
 }
 
 /**

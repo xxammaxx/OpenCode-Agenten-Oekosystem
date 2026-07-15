@@ -21,6 +21,7 @@ import { existsSync } from 'node:fs';
 import { evaluateKernelGates, detectKernelGateOverrides } from './lib/gates/kernel.mjs';
 import { createGateDecision, CLASSIFICATIONS, VERIFICATION_LEVELS, classificationToExitCode } from './lib/gates/decision.mjs';
 import { normalizeRuntime, validateAdapterAgainstKernel, getConfidenceLevel, KNOWN_RUNTIMES } from './lib/runtimes/contract.mjs';
+import { VALID_ACTIONS } from './lib/gates/approval.mjs';
 import * as genericAdapter from './lib/runtimes/generic.mjs';
 import * as opencodeAdapter from './lib/runtimes/opencode.mjs';
 import * as hermesAdapter from './lib/runtimes/hermes.mjs';
@@ -171,6 +172,15 @@ async function main() {
     process.exit(2);
   }
 
+  // Validate action against known valid actions
+  const VALID_CLI_ACTIONS = new Set([
+    ...VALID_ACTIONS, 'evaluate', 'review', 'validate', 'check', 'scan'
+  ]);
+  if (!VALID_CLI_ACTIONS.has(args.action)) {
+    console.error(`Invalid action: "${args.action}". Valid actions: ${[...VALID_CLI_ACTIONS].sort().join(', ')}`);
+    process.exit(2);
+  }
+
   // Select adapter
   const { adapter, detectedAs, confidence } = selectAdapter(args.runtime, targetRoot);
 
@@ -194,8 +204,18 @@ async function main() {
 
   // Detect kernel gate overrides in adapter
   const adapterOverrideCheck = detectKernelGateOverrides({
-    // Adapter results that could conflict with kernel gates
+    runtimeGates: adapterResult ? adapterResult.blockedBy || [] : [],
+    kernelViolations: kernelResult.violations || [],
+    adapterClassification: adapterResult?.classification || CLASSIFICATIONS.GREEN_SAFE,
+    kernelClassification: kernelResult.classification || CLASSIFICATIONS.GREEN_SAFE
   });
+
+  if (!adapterOverrideCheck.clean && !args.json) {
+    console.log(`\n⚠️  Adapter Kernel Override Detected:`);
+    for (const override of adapterOverrideCheck.overrides || []) {
+      console.log(`    ❌ ${override.type || 'UNKNOWN'}: ${override.message || 'adapter override detected'}`);
+    }
+  }
 
   if (!args.json) {
     console.log(`Kernel Gates: ${kernelResult.passedGateCount}/${kernelResult.kernelGateCount} passed`);

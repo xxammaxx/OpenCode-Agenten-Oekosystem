@@ -168,35 +168,64 @@ export function validate(context = {}) {
       const content = readFileSync(envPath, 'utf-8');
       const lines = content.split('\n');
 
+      // Pre-scan auth settings
+      const authLine = lines.find(l => {
+        const trimmed = l.trim();
+        return /^AUTH_ENABLED\s*=\s*/i.test(trimmed);
+      });
+      const authEnabled = authLine
+        ? authLine.split('=').slice(1).join('=').trim().toLowerCase() !== 'false'
+        : true; // default: auth is enabled
+
       for (const line of lines) {
         const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
 
-        // Check APP_BIND
-        if (trimmed.startsWith('APP_BIND=')) {
-          const bindValue = trimmed.split('=')[1].trim();
-          if (bindValue === '0.0.0.0') {
-            // Check if auth is enabled
-            const authLine = lines.find(l => l.trim().startsWith('AUTH_ENABLED='));
-            const authEnabled = authLine ? authLine.split('=')[1].trim() !== 'false' : true;
+        // Robust APP_BIND / ODYSSEUS_HOST check (case-insensitive, quote-safe, comment-safe)
+        // Captures: APP_BIND=0.0.0.0, APP_BIND="0.0.0.0", APP_BIND='0.0.0.0',
+        //           app_bind=0.0.0.0, APP_BIND = 0.0.0.0, APP_BIND=0.0.0.0 # comment
+        //           ODYSSEUS_HOST=0.0.0.0, APP_BIND=::, etc.
+        const bindMatch = trimmed.match(/^(?:APP_BIND|ODYSSEUS_HOST)\s*=\s*(.+?)(?:\s*#.*)?$/i);
+        if (bindMatch) {
+          // Strip quotes (single, double, backtick) and trim
+          const bindValue = bindMatch[1].replace(/^['"`]|['"`]$/g, '').trim();
 
+          if (bindValue === '0.0.0.0' || bindValue === '::') {
             if (!authEnabled) {
               findings.push({
                 type: 'CRITICAL',
                 severity: 'RED_BLOCK',
                 file: '.env',
-                message: 'APP_BIND=0.0.0.0 with AUTH_ENABLED=false — public exposure without authentication. RED_BLOCK.'
+                message: `${bindMatch[0].split('=')[0].trim()}=${bindValue} with AUTH_ENABLED=false — public exposure without authentication. RED_BLOCK.`
               });
             } else {
               findings.push({
                 type: 'WARNING',
                 severity: 'AMBER_REVIEW',
                 file: '.env',
-                message: 'APP_BIND=0.0.0.0 — network exposure detected. Authentication must remain enabled.'
+                message: `${bindMatch[0].split('=')[0].trim()}=${bindValue} — network exposure detected. Authentication must remain enabled.`
               });
             }
+          } else if (bindValue && bindValue !== '127.0.0.1' && bindValue !== 'localhost') {
+            warnings.push(`APP_BIND/ODYSSEUS_HOST is "${bindValue}" — ensure authentication is enabled for non-localhost bindings.`);
           }
-          if (bindValue && bindValue !== '127.0.0.1' && bindValue !== 'localhost' && bindValue !== '0.0.0.0') {
-            warnings.push(`APP_BIND is "${bindValue}" — ensure authentication is enabled for LAN/reverse-proxy bindings.`);
+        }
+
+        // Check uvicorn --host argument in .env (e.g., CMD or startup config)
+        const uvicornMatch = trimmed.match(/uvicorn\s+.*--host\s+(['"]?)([^\s'"]+)\1/i);
+        if (uvicornMatch) {
+          const hostVal = uvicornMatch[2];
+          if (hostVal === '0.0.0.0' || hostVal === '::') {
+            if (!authEnabled) {
+              findings.push({
+                type: 'CRITICAL',
+                severity: 'RED_BLOCK',
+                file: '.env',
+                message: `uvicorn --host ${hostVal} with AUTH_ENABLED=false — public exposure without authentication. RED_BLOCK.`
+              });
+            } else {
+              warnings.push(`uvicorn --host ${hostVal} detected — ensure authentication is enforced.`);
+            }
           }
         }
 
@@ -229,7 +258,7 @@ export function validate(context = {}) {
     } catch { /* cannot read .env */ }
   }
 
-  // Check docker-compose.yml for host-docker overlay
+  // Check docker-compose.yml for host-docker overlay AND port exposure
   const composePath = resolve(targetRoot, 'docker-compose.yml');
   if (existsSync(composePath)) {
     try {
@@ -241,6 +270,25 @@ export function validate(context = {}) {
           file: 'docker-compose.yml',
           message: 'Docker socket mount detected in compose file. High-trust — requires separate approval.'
         });
+      }
+
+      // Check for port mappings exposing to 0.0.0.0 or ::
+      // Matches: ports:\n  - "0.0.0.0:5050:5050" or ports:\n  - "::1:5050:5050"
+      const portLineRegex = /^\s*-\s*["']?\s*(0\.0\.0\.0|::)\s*:\s*\d+\s*:\s*\d+\s*["']?\s*$/m;
+      const portBlockRegex = /ports:\s*\n((?:\s+-\s+.*\n?)+)/gi;
+      let portMatch;
+      while ((portMatch = portBlockRegex.exec(content)) !== null) {
+        const portBlock = portMatch[1];
+        const exposedPorts = portBlock.match(portLineRegex);
+        if (exposedPorts) {
+          findings.push({
+            type: 'CRITICAL',
+            severity: 'RED_BLOCK',
+            file: 'docker-compose.yml',
+            message: `Docker port mapping exposes service to ${exposedPorts[0].trim()}. Requires network binding approval.`
+          });
+          break;
+        }
       }
     } catch { /* skip */ }
   }
