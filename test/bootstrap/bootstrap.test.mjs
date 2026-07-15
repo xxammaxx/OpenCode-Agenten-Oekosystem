@@ -59,7 +59,8 @@ const fixtureExpectations = {
   "civic-tech-pii": async (context) => {
     assert.ok(context.discovery.signals.some((signal) => signal.id === "pii-signals"))
     assert.ok(context.selection.agents.includes("compliance-agent"))
-    assert.ok(context.selection.skills.includes("tierheim-compliance"))
+    assert.ok(context.selection.skills.includes("privacy-data-minimization"))
+    assert.equal(context.selection.skills.includes("tierheim-compliance"), false, "generic PII should not get tierheim-compliance")
   },
   "tierheim-civipet": async (context) => {
     assert.ok(context.discovery.signals.some((signal) => signal.id === "tierheim-signals"))

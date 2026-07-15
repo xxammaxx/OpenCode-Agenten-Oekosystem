@@ -1,0 +1,315 @@
+{
+  "version": "1.0.0",
+  "description": "Canonical evidence-driven working method for the OpenCode Agent Ecosystem",
+
+  "source_of_truth_order": [
+    "reality_truth",
+    "executable_truth",
+    "evidence_truth",
+    "documentation_truth",
+    "memory_chat_context"
+  ],
+
+  "truth_layers": {
+    "0_reality": {
+      "name": "Reality Truth",
+      "description": "Actual runtime and repository state",
+      "priority": "highest",
+      "can_override": [],
+      "overridden_by": []
+    },
+    "1_executable": {
+      "name": "Executable Truth",
+      "description": "Runnable code, tests, schemas",
+      "priority": 1,
+      "can_override": [2, 3, 4],
+      "overridden_by": [0]
+    },
+    "2_evidence": {
+      "name": "Evidence Truth",
+      "description": "Reproducible logs, screenshots, test output",
+      "priority": 2,
+      "can_override": [3, 4],
+      "overridden_by": [0, 1]
+    },
+    "3_documentation": {
+      "name": "Documentation Truth",
+      "description": "Issues, ADRs, reports, policies",
+      "priority": 3,
+      "can_override": [4],
+      "overridden_by": [0, 1, 2]
+    },
+    "4_memory_chat": {
+      "name": "Memory/Chat Context",
+      "description": "Chat history, agent memory",
+      "priority": "lowest",
+      "can_override": [],
+      "overridden_by": [0, 1, 2, 3]
+    }
+  },
+
+  "context_levels": {
+    "COLD": {
+      "description": "Contains only task, repo URL/path, hard constraints, source-of-truth references",
+      "allowed_actions": ["read", "analyze", "classify"],
+      "implementation_allowed": false,
+      "planning_allowed": false,
+      "delegation_allowed": false
+    },
+    "WARM": {
+      "description": "Contains validated repo facts, issue/run-report, architecture, affected files, existing tests, known risks",
+      "allowed_actions": ["read", "analyze", "classify", "plan", "delegate"],
+      "implementation_allowed": false,
+      "planning_allowed": true,
+      "delegation_allowed": true
+    },
+    "HOT": {
+      "description": "Contains current diff, test output, logs, runtime evidence, open findings, approval status",
+      "allowed_actions": ["implement", "review", "verify", "commit"],
+      "implementation_allowed": true,
+      "planning_allowed": true,
+      "delegation_allowed": true
+    }
+  },
+
+  "risk_tiers": {
+    "LOW_LOCAL": {
+      "description": "Small local change, reversible, no external systems, no sensitive data",
+      "required_phases": ["preflight", "reality_refresh", "lightweight_spec", "verification_contract", "local_tests"],
+      "reviewer_required": "if_code_change",
+      "speckit_required": false,
+      "owner_approval_required": false,
+      "security_required": false,
+      "compliance_required": false
+    },
+    "MEDIUM_REVIEW": {
+      "description": "Multiple files/modules, new dependency, API or architecture impact",
+      "required_phases": ["preflight", "reality_refresh", "spec", "plan", "tasks", "security_screening", "compliance_screening", "verification_contract", "local_tests", "reviewer"],
+      "reviewer_required": true,
+      "speckit_required": "spec_plan_tasks",
+      "owner_approval_required": false,
+      "security_required": "screening",
+      "compliance_required": "screening"
+    },
+    "HIGH_HUMAN_GATE": {
+      "description": "Infrastructure, security, auth, migration, PII, external systems, cost, deployment",
+      "required_phases": ["preflight", "reality_refresh", "full_speckit", "github_issue", "verification_contract", "red_tests", "security", "compliance", "owner_approval", "implementation", "local_validation", "truth_mirror", "reviewer", "evidence_abschluss"],
+      "reviewer_required": true,
+      "speckit_required": true,
+      "owner_approval_required": true,
+      "security_required": "full",
+      "compliance_required": "full"
+    },
+    "CRITICAL_BLOCK": {
+      "description": "Productive destructive operation, data loss risk, unchecked secrets, force-push, private remote CI without approval, irreversible run without backup, missing session or credentials",
+      "required_phases": ["block_diagnosis"],
+      "reviewer_required": false,
+      "speckit_required": false,
+      "owner_approval_required": false,
+      "security_required": false,
+      "compliance_required": false,
+      "implementation_blocked": true,
+      "block_reasons": [
+        "productive_destructive_operation",
+        "data_loss_risk_unresolved",
+        "unchecked_secrets",
+        "force_push",
+        "private_remote_ci_without_approval",
+        "irreversible_run_without_backup",
+        "missing_legitimate_session",
+        "missing_necessary_credentials"
+      ]
+    }
+  },
+
+  "phases": [
+    { "order": 0, "name": "os_shell_runtime_tool_preflight", "context": "COLD", "mandatory": true },
+    { "order": 1, "name": "reality_refresh", "context": "WARM", "mandatory": true },
+    { "order": 2, "name": "context_manifest", "context": "WARM", "mandatory": true },
+    { "order": 3, "name": "run_card", "context": "WARM", "mandatory": true },
+    { "order": 4, "name": "risk_tier_assessment", "context": "WARM", "mandatory": true },
+    { "order": 5, "name": "research", "context": "WARM", "mandatory": true },
+    { "order": 6, "name": "planning", "context": "WARM", "mandatory": true },
+    { "order": 7, "name": "architecture", "context": "WARM", "mandatory": true },
+    { "order": 8, "name": "security", "context": "HOT", "mandatory": true },
+    { "order": 9, "name": "compliance", "context": "HOT", "mandatory": true },
+    { "order": 10, "name": "verification_contract", "context": "HOT", "mandatory": true },
+    { "order": 11, "name": "red_tests", "context": "HOT", "mandatory": true },
+    { "order": 12, "name": "owner_approval", "context": "HOT", "mandatory": true },
+    { "order": 13, "name": "implementation", "context": "HOT", "mandatory": true },
+    { "order": 14, "name": "local_validation", "context": "HOT", "mandatory": true },
+    { "order": 15, "name": "reality_gate", "context": "HOT", "mandatory": true },
+    { "order": 16, "name": "living_truth_mirror", "context": "HOT", "mandatory": true },
+    { "order": 17, "name": "reviewer", "context": "HOT", "mandatory": true },
+    { "order": 18, "name": "evidence_abschluss", "context": "HOT", "mandatory": true },
+    { "order": 19, "name": "commit_gate", "context": "HOT", "mandatory": true },
+    { "order": 20, "name": "push_gate", "context": "HOT", "mandatory": true },
+    { "order": 21, "name": "pr_gate", "context": "HOT", "mandatory": true },
+    { "order": 22, "name": "merge_gate", "context": "HOT", "mandatory": true },
+    { "order": 23, "name": "deployment_gate", "context": "HOT", "mandatory": true }
+  ],
+
+  "classifications": ["GREEN_SAFE", "AMBER_REVIEW", "RED_BLOCK", "TOOL_GAP"],
+
+  "approval_gates": {
+    "apply": {
+      "description": "Before files are modified in the target project",
+      "scope_specific": true,
+      "non_transferable": true,
+      "required_when": "any_file_write_in_target",
+      "states": ["NOT_REQUESTED", "PENDING", "APPROVED", "DENIED", "EXPIRED"]
+    },
+    "commit": {
+      "description": "Before changes are committed",
+      "scope_specific": true,
+      "non_transferable": true,
+      "required_when": "any_git_commit",
+      "states": ["NOT_REQUESTED", "PENDING", "APPROVED", "DENIED", "EXPIRED"]
+    },
+    "push": {
+      "description": "Before changes are pushed to remote",
+      "scope_specific": true,
+      "non_transferable": true,
+      "required_when": "any_git_push",
+      "states": ["NOT_REQUESTED", "PENDING", "APPROVED", "DENIED", "EXPIRED"]
+    },
+    "pr": {
+      "description": "Before a pull request is created",
+      "scope_specific": true,
+      "non_transferable": true,
+      "required_when": "any_pr_creation",
+      "states": ["NOT_REQUESTED", "PENDING", "APPROVED", "DENIED", "EXPIRED"]
+    },
+    "merge": {
+      "description": "Before a PR is merged",
+      "scope_specific": true,
+      "non_transferable": true,
+      "required_when": "any_pr_merge",
+      "states": ["NOT_REQUESTED", "PENDING", "APPROVED", "DENIED", "EXPIRED"]
+    },
+    "deploy": {
+      "description": "Before a deployment occurs",
+      "scope_specific": true,
+      "non_transferable": true,
+      "required_when": "any_deployment",
+      "states": ["NOT_REQUESTED", "PENDING", "APPROVED", "DENIED", "EXPIRED"]
+    },
+    "remote_ci": {
+      "description": "Before remote CI is activated or executed",
+      "scope_specific": true,
+      "non_transferable": true,
+      "required_when": "any_remote_ci_activation",
+      "states": ["NOT_REQUESTED", "PENDING", "APPROVED", "DENIED", "EXPIRED"]
+    },
+    "skill_write": {
+      "description": "Before agents create or modify skills",
+      "scope_specific": true,
+      "non_transferable": true,
+      "required_when": "any_skill_create_or_modify",
+      "states": ["NOT_REQUESTED", "PENDING", "APPROVED", "DENIED", "EXPIRED"]
+    },
+    "memory_write": {
+      "description": "Before agents write memory files",
+      "scope_specific": true,
+      "non_transferable": true,
+      "required_when": "any_memory_file_write",
+      "states": ["NOT_REQUESTED", "PENDING", "APPROVED", "DENIED", "EXPIRED"]
+    }
+  },
+
+  "constraint_reinjection_points": [
+    "after_context_compaction",
+    "before_agent_delegation",
+    "before_apply",
+    "before_commit",
+    "before_push",
+    "before_pr_creation",
+    "before_merge",
+    "before_deployment",
+    "before_productive_data_operations",
+    "before_skill_or_memory_writes"
+  ],
+
+  "mandatory_run_card_fields": [
+    "goal",
+    "why_necessary",
+    "risk_tier",
+    "context_level",
+    "source_of_truth",
+    "scope",
+    "out_of_scope",
+    "hard_constraints",
+    "non_touch_areas",
+    "involved_agents",
+    "verification_contract",
+    "red_tests",
+    "test_matrix",
+    "evidence_plan",
+    "owner_approval_status",
+    "rollback_strategy",
+    "expected_completion_classification"
+  ],
+
+  "remote_ci": {
+    "default_enabled": false,
+    "local_tests_first": true,
+    "private_repo_without_approval": "RED_BLOCK",
+    "requires_cost_analysis": true,
+    "requires_secret_analysis": true,
+    "requires_permission_analysis": true,
+    "list_workflows_explicitly": true,
+    "no_claim_required_if_local_sufficient": true
+  },
+
+  "anti_fake_execution": {
+    "prohibited": [
+      "invented_tool_calls",
+      "invented_tests",
+      "invented_logs",
+      "invented_files",
+      "invented_issues_or_prs",
+      "invented_runtime_verification",
+      "background_promises_without_automation",
+      "green_safe_without_evidence"
+    ],
+    "required": [
+      "tool_discovery",
+      "runtime_discovery",
+      "os_shell_detection",
+      "tool_gap_when_missing_capabilities",
+      "clear_separation_structural_vs_live"
+    ]
+  },
+
+  "evidence_contract": {
+    "severity_claim": {
+      "required": ["cvss_vector", "poc_reproduction", "log_evidence", "impact_demonstration", "reproduction_environment"],
+      "fallback": "UNVERIFIED"
+    },
+    "architecture_decision": {
+      "required": ["adr_document", "dependency_impact_analysis", "coupling_analysis", "alternative_evaluation"],
+      "fallback": "PROPOSAL_ONLY"
+    },
+    "migration_ready": {
+      "required": ["rollback_tested", "data_integrity_verified", "backup_confirmed", "dry_run_output"],
+      "fallback": "PENDING_REVIEW"
+    },
+    "bug_fixed": {
+      "required": ["failing_test_before", "passing_test_after", "regression_test_added", "git_diff_stat"],
+      "fallback": "PENDING_VERIFICATION"
+    },
+    "feature_complete": {
+      "required": ["acceptance_criteria_met", "test_coverage_maintained", "spec_compliance_verified", "visual_regression_when_applicable"],
+      "fallback": "IN_PROGRESS"
+    },
+    "compliance_claim": {
+      "required": ["data_flow_diagram", "consent_mechanism_verified", "retention_policy_enforced", "right_to_deletion_tested", "data_minimization_audit"],
+      "fallback": "PENDING_AUDIT"
+    }
+  },
+
+  "non_touch_areas": {
+    "description": "Each run card must specify files/directories that must not be touched",
+    "default_rule": "all_files_outside_explicit_scope"
+  }
+}

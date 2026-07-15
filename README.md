@@ -2,6 +2,8 @@
 
 This repository is a universal bootstrap kit for project-local OpenCode and Hermes Agent setup.
 
+It also serves as the **canonical workflow contract + policy source** — see [`WORKING-METHOD.md`](WORKING-METHOD.md) for the evidence-driven, risk-tiered execution model, and `.hermes/skill-bundles/canonical-working-method.yaml` for the Hermes-native YAML skill bundle.
+
 The intended workflow is:
 
 1. hand an AI the repository URL
@@ -11,7 +13,7 @@ The intended workflow is:
 5. apply only with explicit `--apply`
 6. rollback from the printed backup manifest if needed
 
-Start with [`BOOTSTRAP.md`](BOOTSTRAP.md). It is the entry point for agents that only know the repository URL.
+Start with [`BOOTSTRAP.md`](BOOTSTRAP.md) for the bootstrap flow, or [`WORKING-METHOD.md`](WORKING-METHOD.md) for the canonical execution contract.
 
 ## What it does
 
@@ -132,6 +134,17 @@ This repository ships with its own validator, manifests, docs, and fixtures. Whe
 - machine-readable truth: manifest and validator output
 - technical truth: architecture, ADR, plan, and reports
 - user truth: README, BOOTSTRAP, troubleshooting, and examples
+
+## Canonical Working Method Layer
+
+This repository defines a **canonical working method** — a formal 22-step execution order with risk tiers, evidence gates, and verification contracts. See:
+
+- [`WORKING-METHOD.md`](WORKING-METHOD.md) — Full text of the canonical workflow
+- `.hermes/skill-bundles/canonical-working-method.yaml` — Hermes-native YAML skill bundle of the same method
+- [`.opencode/policies/evidence-gates.json`](.opencode/policies/evidence-gates.json) — Gate definitions for each claim type
+- [`.opencode/policies/write-protection.json`](.opencode/policies/write-protection.json) — Write protection rules
+
+Use the working method for any non-trivial implementation, architecture decision, or integration task.
 
 ## Notes
 

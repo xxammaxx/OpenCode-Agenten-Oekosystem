@@ -1,0 +1,40 @@
+# Hermes Agent Configuration Example
+# For the OpenCode Agent Ecosystem
+
+skills:
+  external_dirs:
+    - ${WORKING_METHOD_REPO}/.opencode/skills
+  bundles:
+    - ${WORKING_METHOD_REPO}/.hermes/skill-bundles/canonical-working-method.yaml
+  write_approval: true
+
+memory:
+  write_approval: true
+  path: ${WORKING_METHOD_REPO}/.hermes/memory
+
+mcp:
+  servers:
+    github:
+      enabled: false
+      type: github
+    brave-search:
+      enabled: false
+      type: brave-search
+    context7:
+      enabled: false
+      type: context7
+  toolfilter:
+    default: deny
+  sampling:
+    enabled: false
+    untrusted_servers: false
+
+safety:
+  no_secrets: true
+  no_auto_global_config: true
+  external_skill_dirs_write_boundary: false
+  require_approval_for:
+    - file_write
+    - remote_action
+    - skill_write
+    - memory_write

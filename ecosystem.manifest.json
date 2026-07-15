@@ -117,13 +117,13 @@
       "id": "node-package-json",
       "signals": ["package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock"],
       "domain": "generic",
-      "recommend": ["project-reality-refresh", "run-card", "provider-neutral-config"]
+      "recommend": ["project-reality-refresh", "context-engineering", "run-card", "risk-tier-routing", "verification-contract", "anti-fake-execution", "worktree-safety", "checkpoint-and-rollback", "owner-approval-gate", "privacy-data-minimization", "living-truth-mirror", "provider-neutral-config", "project-bootstrap", "mcp-selection", "hermes-handoff"]
     },
     {
       "id": "python-project",
       "signals": ["pyproject.toml", "requirements.txt", "uv.lock", "poetry.lock", "pipfile"],
       "domain": "generic",
-      "recommend": ["project-reality-refresh", "run-card", "checkpoint-and-rollback"]
+      "recommend": ["project-reality-refresh", "context-engineering", "run-card", "risk-tier-routing", "verification-contract", "anti-fake-execution", "worktree-safety", "checkpoint-and-rollback", "owner-approval-gate", "privacy-data-minimization", "living-truth-mirror", "provider-neutral-config", "project-bootstrap", "mcp-selection", "hermes-handoff"]
     },
     {
       "id": "frontend-playwright",
@@ -165,7 +165,7 @@
       "id": "civic-tech-pii",
       "signals": ["consent", "adopter", "donor", "volunteer", "medical", "privacy", "retention"],
       "domain": "conditional",
-      "recommend": ["tierheim-compliance", "living-truth-mirror", "checkpoint-and-rollback"]
+      "recommend": ["privacy-data-minimization", "living-truth-mirror", "checkpoint-and-rollback"]
     },
     {
       "id": "tierheim-civipet",
@@ -204,6 +204,14 @@
         {
           "name": "review-agent",
           "description": "Reviews code, security, and regression risk without edits."
+        },
+        {
+          "name": "security-agent",
+          "description": "Validates vulnerabilities only with reproducing evidence."
+        },
+        {
+          "name": "compliance-agent",
+          "description": "Audits DSGVO and data-minimization boundaries."
         }
       ],
       "conditional": [
@@ -228,16 +236,7 @@
           "description": "Performs visual QA and accessibility checks."
         }
       ],
-      "domain_specific": [
-        {
-          "name": "security-agent",
-          "description": "Validates vulnerabilities only with reproducing evidence."
-        },
-        {
-          "name": "compliance-agent",
-          "description": "Audits DSGVO and data-minimization boundaries."
-        }
-      ],
+      "domain_specific": [],
       "experimental": [
         {
           "name": "hermes-gateway-preview",
@@ -263,7 +262,13 @@
         "checkpoint-and-rollback",
         "living-truth-mirror",
         "provider-neutral-config",
-        "worktree-safety"
+        "worktree-safety",
+        "context-engineering",
+        "risk-tier-routing",
+        "verification-contract",
+        "owner-approval-gate",
+        "anti-fake-execution",
+        "privacy-data-minimization"
       ],
       "conditional": [
         "mcp-selection",
@@ -292,11 +297,11 @@
         "mcp-trust-tiers"
       ],
       "conditional": [
-        "model-routing",
-        "data-retention"
+        "model-routing"
       ],
       "domain_specific": [
-        "tierheim-retention"
+        "tierheim-retention",
+        "data-retention"
       ],
       "experimental": [
         "remote-ci-proposal"
@@ -304,6 +309,60 @@
       "deprecated": [
         "allow-all-tools",
         "copy-workflows-by-default"
+      ]
+    },
+    "working_method": {
+      "description": "Defines the canonical step-by-step working method for agents across all risk tiers.",
+      "steps": [
+        "read-before-sketch",
+        "spec-driven-development",
+        "evidence-gated-progression",
+        "run-card-first",
+        "context-level-assessment",
+        "risk-tier-routing",
+        "verification-contract",
+        "owner-approval-gate",
+        "anti-fake-execution",
+        "living-truth-mirror"
+      ]
+    },
+    "context_levels": {
+      "description": "Context scoping levels for agent work.",
+      "levels": ["project", "module", "file", "function"]
+    },
+    "risk_tiers": {
+      "description": "Risk tiers for routing decisions, defined in WORKING-METHOD.md.",
+      "tiers": [
+        { "id": "LOW_LOCAL", "description": "Local-only change, no external dependencies", "auto_approve": true },
+        { "id": "MEDIUM_REVIEW", "description": "Review-level change, requires peer validation", "require_review": true },
+        { "id": "HIGH_HUMAN_GATE", "description": "Architecture or policy change, requires human approval", "require_human_gate": true },
+        { "id": "CRITICAL_BLOCK", "description": "Blocker that prevents implementation until resolved", "block_with_audit": true }
+      ]
+    },
+    "truth_layers": {
+      "description": "Truth layers for verification contracts, from spec through to evidence.",
+      "layers": ["spec", "implementation", "test", "evidence"]
+    },
+    "approval_gates": {
+      "description": "Approval gate types for owner approval before implementation or deployment.",
+      "gates": [
+        { "id": "owner", "mechanism": "human-approval", "required": true },
+        { "id": "review", "mechanism": "peer-review", "required": true, "when": ["MEDIUM_REVIEW", "HIGH_HUMAN_GATE"] },
+        { "id": "audit", "mechanism": "log-review", "required": true, "when": ["HIGH_HUMAN_GATE", "CRITICAL_BLOCK"] }
+      ]
+    },
+    "mandatory_run_card_fields": {
+      "description": "Required fields in every run card for traceability and audit.",
+      "fields": [
+        "task_id",
+        "objective",
+        "context_level",
+        "risk_tier",
+        "verification_contract",
+        "approval_status",
+        "evidence_log",
+        "changed_files",
+        "risks_and_uncertainties"
       ]
     },
     "mcp_servers": {

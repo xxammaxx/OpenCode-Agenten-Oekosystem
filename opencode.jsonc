@@ -26,9 +26,10 @@
     ".opencode/policies/evidence-gates.json",
     ".opencode/policies/mcp-trust-tiers.json",
     ".opencode/policies/write-protection.json",
-    ".opencode/policies/data-retention.json",
     ".opencode/policies/model-routing.json",
-    "ecosystem.manifest.json"
+    "ecosystem.manifest.json",
+    "WORKING-METHOD.md",
+    ".opencode/policies/working-method.json"
   ],
 
   "mcp": {
@@ -60,15 +61,6 @@
     //   "url": "http://127.0.0.1:50000/sse",
     //   "enabled": false
     // }
-  },
-
-  "tools": {
-    "github_*": false,
-    "playwright_*": false,
-    "docker_*": false,
-    "sqlite_*": false,
-    "brave-search_*": false,
-    "context7_*": false
   },
 
   "permission": {
@@ -142,11 +134,14 @@
           "spec-driven-development": "allow",
           "audit-trail-enforcer": "allow",
           "test-enforcement": "allow",
+          "context-engineering": "allow",
+          "risk-tier-routing": "allow",
+          "verification-contract": "allow",
+          "owner-approval-gate": "allow",
+          "anti-fake-execution": "allow",
+          "privacy-data-minimization": "allow",
           "*": "allow"
         }
-      },
-      "tools": {
-        "github_*": true
       }
     },
 
@@ -236,10 +231,6 @@
           "security-evidence-gate": "allow",
           "*": "deny"
         }
-      },
-      "tools": {
-        "brave-search_*": true,
-        "context7_*": true
       }
     },
 
@@ -285,10 +276,6 @@
           "test-enforcement": "allow",
           "*": "deny"
         }
-      },
-      "tools": {
-        "sqlite_*": true,
-        "docker_*": true
       }
     },
 
@@ -311,9 +298,6 @@
           "playwright-visual-review": "allow",
           "*": "deny"
         }
-      },
-      "tools": {
-        "playwright_*": true
       }
     },
 
@@ -368,10 +352,6 @@
           "audit-trail-enforcer": "allow",
           "*": "deny"
         }
-      },
-      "tools": {
-        "docker_*": true,
-        "brave-search_*": true
       }
     },
 

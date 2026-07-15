@@ -108,19 +108,26 @@ export function selectManifestRecommendations(manifest, discovery, options = {})
 
   const includeRemoteCI = Boolean(options.includeRemoteCI)
   const files = discovery.analysis_files ?? discovery.files ?? []
-  const hasPii = discovery.signals.some((signal) => signal.id === "pii-signals" || signal.id === "tierheim-signals")
+  const hasGenericPii = discovery.signals.some((signal) => signal.id === "pii-signals")
+  const hasTierheim = discovery.signals.some((signal) => signal.id === "tierheim-signals")
   const hasFrontend = discovery.frameworks.includes("playwright") || discovery.frameworks.includes("vite") || files.some((file) => /playwright\.config\./i.test(file))
   const hasDatabase = discovery.databases.length > 0 || files.some((file) => /migrations?|schema/i.test(file))
   const hasGithub = discovery.existing.github_remote
 
   recommendations.skills.push(
     "project-reality-refresh",
+    "context-engineering",
     "run-card",
-    "project-bootstrap",
+    "risk-tier-routing",
+    "verification-contract",
+    "anti-fake-execution",
+    "worktree-safety",
     "checkpoint-and-rollback",
+    "owner-approval-gate",
+    "privacy-data-minimization",
     "living-truth-mirror",
     "provider-neutral-config",
-    "worktree-safety",
+    "project-bootstrap",
     "mcp-selection",
     "hermes-handoff",
   )
@@ -139,10 +146,15 @@ export function selectManifestRecommendations(manifest, discovery, options = {})
     recommendations.notes.push("Database or migration signals detected; migration skill is relevant.")
   }
 
-  if (hasPii) {
+  if (hasGenericPii) {
+    recommendations.agents.push("compliance-agent")
+    recommendations.notes.push("PII signals detected; compliance-agent is recommended for data-minimization audits.")
+  }
+
+  if (hasTierheim) {
     recommendations.skills.push("tierheim-compliance")
     recommendations.agents.push("compliance-agent")
-    recommendations.notes.push("PII or Tierheim/CiviPet signals detected; compliance policy is conditional.")
+    recommendations.notes.push("Tierheim/CiviPet signals detected; tierheim-compliance skill is conditional.")
   }
 
   if (hasGithub) {

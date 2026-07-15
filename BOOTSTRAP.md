@@ -2,6 +2,8 @@
 
 This repository is the source of truth for a safe, project-local bootstrap of OpenCode and Hermes Agent.
 
+It also serves as the **canonical workflow contract + policy source** — see [`WORKING-METHOD.md`](WORKING-METHOD.md) for the evidence-driven, risk-tiered execution model, and `.hermes/skill-bundles/canonical-working-method.yaml` for the Hermes-native YAML skill bundle.
+
 Start here if you only know the repository URL:
 
 1. Read this file first.
@@ -115,12 +117,34 @@ OpenCode remains the primary coding executor. The generated config keeps MCPs di
 
 The bootstrap generates project-local Hermes assets that can be loaded as a portable bundle.
 
-Typical session:
+**Important:** Hermes is a Python-based agent (repository: `NousResearch/hermes-agent`), not embedded in OpenCode. The commands below reflect the documented Hermes interface; actual runtime behavior may differ depending on the installed version. If Hermes is not installed in the target environment, the live test is classified as `TOOL_GAP_HERMES_RUNTIME`.
+
+### Flat Skills List (Legacy)
 
 ```bash
 cd /pfad/zum/zielprojekt
 hermes --skills project-bootstrap,project-reality-refresh,run-card,mcp-selection,hermes-handoff,worktree-safety,checkpoint-and-rollback,living-truth-mirror,remote-ci-approval-gate,provider-neutral-config
 ```
+
+### YAML Skill Bundle (Recommended)
+
+Load the canonical working method from the native YAML bundle:
+
+```bash
+cd /pfad/zum/zielprojekt
+hermes bundle load .hermes/skill-bundles/canonical-working-method.yaml
+```
+
+Or configure Hermes to load the bundle automatically (see `.hermes/config.example.yaml`):
+
+```yaml
+# In your Hermes config
+skills:
+  bundles:
+    - ${WORKING_METHOD_REPO}/.hermes/skill-bundles/canonical-working-method.yaml
+```
+
+### MCP Gateway Mode
 
 If you want Hermes to act as an MCP server gateway, use the generated handoff notes and start it explicitly:
 
@@ -161,6 +185,7 @@ Before changing a target project, read:
 - [SECURITY.md](SECURITY.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [`ecosystem.manifest.json`](ecosystem.manifest.json)
+- [`WORKING-METHOD.md`](WORKING-METHOD.md) — the canonical 22-step execution order
 
 ## Notes
 
@@ -168,3 +193,4 @@ Before changing a target project, read:
 - No repository file is changed during dry-run.
 - Remote CI is only considered when `--include-remote-ci` is passed.
 - Domain-specific policies such as tierheim or civic-tech rules are only activated when the discovery signals justify them.
+- The Canonical Working Method (see `WORKING-METHOD.md` and `.hermes/skill-bundles/canonical-working-method.yaml`) defines the full evidence-gated, risk-tiered workflow. Use it for any non-trivial implementation task.

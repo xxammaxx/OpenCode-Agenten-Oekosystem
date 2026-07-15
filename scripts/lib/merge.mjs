@@ -47,7 +47,7 @@ export function mergeManagedSection(existingText, managedContent) {
   const section = wrapManagedSection(managedContent).trimEnd()
   const normalizedExisting = existingText.replace(/\r\n/g, "\n")
   const beginIndex = normalizedExisting.indexOf(begin)
-  const endIndex = normalizedExisting.indexOf(end)
+  const endIndex = normalizedExisting.lastIndexOf(end)
   const hasManagedSection = beginIndex !== -1 && endIndex !== -1 && endIndex > beginIndex
   const before = hasManagedSection ? normalizedExisting.slice(0, beginIndex).trimEnd() : normalizedExisting.trimEnd()
   const after = hasManagedSection ? normalizedExisting.slice(endIndex + end.length).trimStart() : ""

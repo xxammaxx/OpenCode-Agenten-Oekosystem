@@ -1,5 +1,9 @@
 # OpenCode Agent Ecosystem Rules
 
+<!-- BEGIN OPENCODE-AGENT-ECOSYSTEM -->
+> **Canonical Working Method:** The full 22-step execution order, risk tiers, context levels, verification contracts, and owner approval gates are defined in [`WORKING-METHOD.md`](WORKING-METHOD.md). This file provides project-specific agent rules that supplement the canonical method. In case of conflict, `WORKING-METHOD.md` prevails.
+<!-- END OPENCODE-AGENT-ECOSYSTEM -->
+
 ## Source Of Truth
 
 - Prefer a GitHub issue as the source of truth when GitHub context is available.
@@ -8,20 +12,14 @@
 
 ## Default Run Order
 
-For larger bootstrap, architecture, or integration work, use this order:
+For larger bootstrap, architecture, or integration work, use the [Canonical 22-Step Execution Order](WORKING-METHOD.md#agent-execution-order) defined in `WORKING-METHOD.md`. The abbreviated summary is:
 
-1. Reality Refresh
-2. Run Card
-3. Research
-4. Planning
-5. Architecture
-6. Compliance
-7. Security
-8. Implementation
-9. Tests
-10. Documentation
-11. Reviewer
-12. Evidence-Abschluss
+1. Reality Refresh → Context Manifest → Research → Planning → Architecture
+2. **Security** → **Compliance** (Security runs BEFORE Compliance)
+3. Verification Contract → Red Tests → Owner Approval
+4. Implementation → Local Validation → Reality Gate
+5. Living Truth Mirror → Reviewer → Evidence-Abschluss
+6. Commit Gate → Push Gate → PR Gate → Merge Gate → Deployment Gate
 
 ## Read Before Sketch
 
@@ -38,16 +36,16 @@ Use `.opencode/skills/project-reality-refresh/SKILL.md` and `.opencode/skills/re
 
 ## Spec-Driven Development Mandate
 
-Before ANY implementation code is written, the Speckit workflow MUST complete:
+The Speckit workflow intensity depends on the Risk Tier (see `WORKING-METHOD.md` for full risk tier definitions):
 
-1. `/speckit.constitution` - project principles
-2. `/speckit.specify` - formal specification
-3. `/speckit.plan` - implementation plan
-4. `/speckit.tasks` - task breakdown
-5. `/speckit.taskstoissues` - GitHub issue creation when GitHub is available
-6. `/speckit.implement` - only now: implementation begins
+| Risk Tier | Speckit Scope | Verification Contract |
+|-----------|---------------|----------------------|
+| **LOW_LOCAL** | Lightweight Spec (goal, scope, acceptance criteria only) | Mandatory |
+| **MEDIUM_REVIEW** | Spec + Plan + Tasks | Mandatory |
+| **HIGH_HUMAN_GATE** | Full Speckit (Constitution → Specify → Plan → Tasks) + GitHub Issues | Mandatory |
+| **CRITICAL_BLOCK** | ❌ No implementation until blocker is resolved | N/A |
 
-Gate: No code without completed specification, acceptance criteria, and tests defined.
+**Gate:** No code without completed specification, acceptance criteria, and tests defined.
 
 ## Evidence-Gated Progression
 
@@ -61,6 +59,8 @@ Before claiming:
 - **DSGVO/GDPR Compliant** -> Data flow diagram + consent verified + retention enforced
 
 ## Mandatory Workflow Per Task
+
+The full canonical workflow is defined in [`WORKING-METHOD.md`](WORKING-METHOD.md#agent-execution-order). Every task MUST follow the Risk Tier-based workflow and produce a Verification Contract before implementation.
 
 ### Start Gate
 
@@ -123,3 +123,5 @@ Load these files on relevant tasks:
 - `.opencode/policies/evidence-gates.json`
 - `.opencode/policies/mcp-trust-tiers.json`
 - `.opencode/policies/data-retention.json`
+
+**Important:** Security runs BEFORE Compliance in the agent execution order. Security findings can invalidate compliance assessments — a system that is insecure cannot be DSGVO-compliant (Art. 32 DSGVO). See [WORKING-METHOD.md: Security Before Compliance](WORKING-METHOD.md#security-before-compliance).
