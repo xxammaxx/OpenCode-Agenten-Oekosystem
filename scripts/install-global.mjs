@@ -15,6 +15,11 @@ import {
 import { createBackup, restoreBackup } from "./lib/backup.mjs"
 
 // ---------------------------------------------------------------------------
+// Directory skip list (mirrors discovery.mjs and validate-ecosystem.mjs)
+// ---------------------------------------------------------------------------
+const IGNORE_DIR_NAMES = new Set([".git", "node_modules"])
+
+// ---------------------------------------------------------------------------
 // Path resolution
 // ---------------------------------------------------------------------------
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
@@ -212,6 +217,7 @@ async function copyTreeSafe(source, target, sourceRoot, targetRoot) {
   const entries = await fs.readdir(source, { withFileTypes: true })
   for (const entry of entries) {
     if (entry.isSymbolicLink()) continue
+    if (IGNORE_DIR_NAMES.has(entry.name)) continue
     await copyTreeSafe(
       path.join(source, entry.name),
       path.join(target, entry.name),
@@ -253,6 +259,7 @@ async function collectFilesRecursive(dir, accumulator) {
   for (const entry of entries) {
     const full = path.join(dir, entry.name)
     if (entry.isSymbolicLink()) continue
+    if (IGNORE_DIR_NAMES.has(entry.name)) continue
     if (entry.isDirectory()) {
       await collectFilesRecursive(full, accumulator)
       continue
@@ -296,6 +303,7 @@ async function collectDirSources(sourceDir, targetDir, planned) {
   const entries = await fs.readdir(sourceDir, { withFileTypes: true })
   for (const entry of entries) {
     if (entry.isSymbolicLink()) continue
+    if (IGNORE_DIR_NAMES.has(entry.name)) continue
     const src = path.join(sourceDir, entry.name)
     const dst = path.join(targetDir, entry.name)
     if (entry.isDirectory()) {
