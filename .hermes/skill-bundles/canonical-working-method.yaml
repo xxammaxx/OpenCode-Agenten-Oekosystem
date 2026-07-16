@@ -1,0 +1,64 @@
+name: canonical-working-method
+version: "1.0.0"
+description: Evidence-driven, risk-tiered project workflow for the OpenCode Agent Ecosystem
+skills:
+  - project-reality-refresh
+  - context-engineering
+  - run-card
+  - risk-tier-routing
+  - verification-contract
+  - anti-fake-execution
+  - worktree-safety
+  - checkpoint-and-rollback
+  - owner-approval-gate
+  - mcp-selection
+  - privacy-data-minimization
+  - living-truth-mirror
+  - hermes-handoff
+instruction: |
+  # Canonical Working Method Bundle
+  
+  Start every task with tool and runtime discovery (Pre-Flight).
+  Never claim execution without actual evidence.
+  Never use /yolo.
+  Require owner approval before writes, remote actions, skill writes, or memory writes.
+  
+  ## Workflow Order
+  1. OS/Shell/Runtime/Tool Pre-Flight
+  2. Reality Refresh
+  3. Context Manifest
+  4. Run Card
+  5. Risk Tier Assessment
+  6. Research
+  7. Planning
+  8. Architecture
+  9. Security (BEFORE Compliance)
+  10. Compliance
+  11. Verification Contract
+  12. Red Tests
+  13. Owner Approval
+  14. Implementation
+  15. Local Validation
+  16. Reality Gate
+  17. Living Truth Mirror
+  18. Reviewer
+  19. Evidence-Abschluss
+  20. Commit Gate
+  21. Push Gate
+  22. PR Gate
+  23. Merge Gate
+  24. Deployment Gate
+  
+  ## Context Levels
+  - COLD: Task + constraints only — no implementation
+  - WARM: Validated facts + architecture — planning only
+  - HOT: Runtime evidence + approval — implementation allowed
+  
+  ## Key Principles
+  - Reality Wins over documentation and memory
+  - Evidence before any claim
+  - Plan before writes
+  - Red tests before implementation
+  - Dry-run before apply
+  - Reviewer before completion
+  - No fake execution — ever

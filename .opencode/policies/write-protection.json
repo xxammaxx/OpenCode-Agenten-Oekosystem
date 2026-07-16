@@ -1,39 +1,9 @@
 {
-  "version": "1.0.0",
-  "description": "Write protection rules defining which operations require human approval, and which are denied entirely.",
+  "version": "1.1.0",
+  "description": "Write protection rules defining operations that are always denied, require human approval, or are managed files with strict modification constraints.",
 
-  "human_gate_required": {
-    "description": "These operations always require explicit human approval before execution",
-    "rules": [
-      {
-        "pattern": "git push *",
-        "reason": "Prevent accidental remote pushes"
-      },
-      {
-        "pattern": "gh issue close *",
-        "reason": "Prevent AI from closing issues autonomously"
-      },
-      {
-        "pattern": "gh pr merge *",
-        "reason": "Prevent AI from merging PRs autonomously"
-      },
-      {
-        "pattern": "docker compose -f *prod* up *",
-        "reason": "Prevent production deployment"
-      },
-      {
-        "pattern": "npm publish *",
-        "reason": "Prevent package publishing"
-      },
-      {
-        "pattern": "git tag *",
-        "reason": "Prevent release tagging"
-      }
-    ]
-  },
-
-  "deny_always": {
-    "description": "These operations are always denied for AI agents",
+  "always_deny": {
+    "description": "These operations are always denied for AI agents — no exceptions.",
     "rules": [
       {
         "pattern": "rm -rf *",
@@ -62,6 +32,172 @@
       {
         "pattern": "chmod 777 *",
         "reason": "Insecure permissions"
+      },
+      {
+        "pattern": "*.env*",
+        "reason": "Environment files may contain secrets — never written or modified by agents"
+      },
+      {
+        "pattern": "*secret*",
+        "reason": "Files matching 'secret' pattern are never read or written by agents"
+      },
+      {
+        "pattern": "*credential*",
+        "reason": "Credential files are never read or written by agents"
+      },
+      {
+        "pattern": "*token*",
+        "reason": "Token files are never read or written by agents"
+      }
+    ]
+  },
+
+  "human_gate": {
+    "description": "These operations always require explicit human approval before execution. Each gate is action-specific, scope-specific, and non-transferable.",
+    "gates": [
+      {
+        "id": "apply",
+        "description": "Before any file changes in the target project",
+        "reason": "Prevent unapproved modifications"
+      },
+      {
+        "id": "commit",
+        "description": "Before changes are committed",
+        "reason": "Prevent unapproved commits"
+      },
+      {
+        "id": "push",
+        "description": "Before changes are pushed to remote",
+        "reason": "Prevent accidental remote pushes"
+      },
+      {
+        "id": "pr",
+        "description": "Before a pull request is created",
+        "reason": "Prevent AI from creating PRs autonomously"
+      },
+      {
+        "id": "merge",
+        "description": "Before a PR is merged",
+        "reason": "Prevent AI from merging PRs autonomously"
+      },
+      {
+        "id": "deploy",
+        "description": "Before any deployment",
+        "reason": "Prevent production deployment"
+      },
+      {
+        "id": "remote_ci",
+        "description": "Before remote CI is enabled or executed",
+        "reason": "Remote CI may consume resources or expose secrets"
+      },
+      {
+        "id": "mcp_tier_2",
+        "description": "Before a Tier 2 MCP server is activated or used",
+        "reason": "Tier 2 MCPs have full access and require human oversight"
+      },
+      {
+        "id": "skill_write",
+        "description": "Before agents create or modify skills",
+        "reason": "Skill changes can affect agent behavior across sessions"
+      },
+      {
+        "id": "memory_write",
+        "description": "Before agents write to memory files",
+        "reason": "Memory writes persist across sessions and may propagate incorrect context"
+      }
+    ],
+    "existing_rules": {
+      "description": "Legacy human_gate_required patterns preserved for backward compatibility",
+      "rules": [
+        {
+          "pattern": "git push *",
+          "reason": "Prevent accidental remote pushes"
+        },
+        {
+          "pattern": "gh issue close *",
+          "reason": "Prevent AI from closing issues autonomously"
+        },
+        {
+          "pattern": "gh pr merge *",
+          "reason": "Prevent AI from merging PRs autonomously"
+        },
+        {
+          "pattern": "docker compose -f *prod* up *",
+          "reason": "Prevent production deployment"
+        },
+        {
+          "pattern": "npm publish *",
+          "reason": "Prevent package publishing"
+        },
+        {
+          "pattern": "git tag *",
+          "reason": "Prevent release tagging"
+        }
+      ]
+    }
+  },
+
+  "managed_files": {
+    "description": "Configuration, agent, policy, and documentation files that require strict modification constraints.",
+    "rules": [
+      {
+        "category": "config",
+        "files": ["opencode.jsonc", "opencode.json"],
+        "constraints": [
+          "explicit_scope_required",
+          "backup_required",
+          "managed_merge_required",
+          "non_touch_area_check_required",
+          "owner_approval_required"
+        ],
+        "reason": "Configuration files affect all agent behavior and must be changed with care"
+      },
+      {
+        "category": "agents",
+        "files": [".opencode/agents/*.md"],
+        "constraints": [
+          "explicit_scope_required",
+          "backup_required",
+          "managed_merge_required",
+          "non_touch_area_check_required",
+          "owner_approval_required"
+        ],
+        "reason": "Agent definition files control delegation and capability boundaries"
+      },
+      {
+        "category": "policies",
+        "files": [".opencode/policies/*.json"],
+        "constraints": [
+          "explicit_scope_required",
+          "backup_required",
+          "managed_merge_required",
+          "non_touch_area_check_required",
+          "owner_approval_required"
+        ],
+        "reason": "Policy files define security, compliance, and evidence boundaries"
+      },
+      {
+        "category": "documentation",
+        "files": ["SECURITY.md", "LICENSE", "CONTRIBUTING.md", "BOOTSTRAP.md", "README.md", "WORKING-METHOD.md"],
+        "constraints": [
+          "explicit_scope_required",
+          "backup_required",
+          "managed_merge_required",
+          "non_touch_area_check_required",
+          "owner_approval_required"
+        ],
+        "reason": "Documentation files define project rules and must be kept accurate"
+      },
+      {
+        "category": "ci",
+        "files": [".github/workflows/*.yml"],
+        "constraints": [
+          "explicit_scope_required",
+          "backup_required",
+          "remote_ci_gate_required",
+          "owner_approval_required"
+        ],
+        "reason": "CI workflows may execute remote code, consume resources, and expose secrets"
       }
     ]
   },
@@ -81,7 +217,7 @@
   },
 
   "file_protection": {
-    "description": "Files that agents may never modify",
+    "description": "Legacy file protection rules — superseded by managed_files section but kept for tool-level enforcement",
     "never_edit": [
       "opencode.jsonc",
       "opencode.json",

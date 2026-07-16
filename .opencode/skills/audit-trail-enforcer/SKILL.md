@@ -72,8 +72,10 @@ Every AI agent decision that affects code, data, or configuration MUST leave an 
 
 ## Retention
 - Session logs: 30 days
-- Audit logs: 10 years (DSGVO compliance)
+- Audit logs: minimal local evidence, retention period defined by project-specific legal basis
 - Evidence cache: 7 days
+- No generic multi-year retention without project-specific legal requirement
+- No secrets or PII in audit logs
 
 ## Verification
 Audit logs can be verified by:

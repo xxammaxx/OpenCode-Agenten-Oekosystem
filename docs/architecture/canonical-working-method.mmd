@@ -1,0 +1,488 @@
+flowchart TD
+    %% ============================================================
+    %% STYLE DEFINITIONS
+    %% ============================================================
+    classDef cold fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    classDef warm fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    classDef hot fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    classDef gate fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    classDef truth fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    classDef risk fill:#fff8e1,stroke:#f9a825,stroke-width:2px
+    classDef approval fill:#e0f2f1,stroke:#00695c,stroke-width:2px
+    classDef mcp fill:#eceff1,stroke:#546e7a,stroke-width:2px
+    classDef step fill:#ffffff,stroke:#455a64,stroke-width:1px
+    classDef nontouch fill:#ffebee,stroke:#b71c1c,stroke-width:2px,stroke-dasharray: 5 5
+
+    %% ============================================================
+    %% CONTEXT LEVEL TRANSITIONS
+    %% ============================================================
+    subgraph CONTEXT_LEVELS ["CONTEXT LEVELS"]
+        direction LR
+        COLD["❄️ COLD
+        ─────────
+        • Repo structure
+        • AGENTS.md
+        • SECURITY.md
+        • Manifest
+        • Working method
+        ─────────
+        READ-ONLY ONLY"]:::cold
+
+        WARM["🌤️ WARM
+        ─────────
+        • All COLD data
+        • Current issue
+        • Relevant policies
+        • Last run reports
+        • Context manifest
+        ─────────
+        PLANNING ONLY"]:::warm
+
+        HOT["🔥 HOT
+        ─────────
+        • All WARM data
+        • Full session history
+        • Open subagent results
+        • Live diagnostics
+        • Verification contracts
+        ─────────
+        IMPLEMENTATION OK"]:::hot
+
+        COLD -->|"🔍 Reality Refresh
+        (project-reality-refresh)"| WARM
+        WARM -->|"👤 Owner Approval
+        (owner-approval-gate)"| HOT
+    end
+
+    %% ============================================================
+    %% PREFLIGHT
+    %% ============================================================
+    subgraph PREFLIGHT ["🔧 PREFLIGHT"]
+        PF["🖥️ OS / Shell / Runtime / Tool Check
+        ─────────────────────────────────
+        • OS: linux | macos | windows | wsl
+        • Shell: bash | zsh | pwsh | cmd
+        • Node.js ≥ 18 | Python ≥ 3.10
+        • git ≥ 2.40 | docker (optional)
+        • OpenCode ≥ 1.15.0
+        • Hermes ≥ 0.18.0 (optional)"]:::step
+    end
+
+    %% ============================================================
+    %% CORE WORKFLOW (Steps 2-12)
+    %% ============================================================
+    subgraph CORE ["📋 CORE WORKFLOW — Structured Analysis"]
+        RR["Step 2: 🔄 Reality Refresh
+        ───────────────────
+        • git status / diff / log
+        • Validate branch state
+        • Check working tree clean
+        • Load project instructions"]:::step
+
+        CM["Step 3: 📋 Context Manifest
+        ───────────────────
+        • Declare context level
+        • List loaded skills
+        • List active agents
+        • Record open tasks
+        • Record session ID"]:::step
+
+        RC["Step 4: 📊 Run Card + Risk Tier
+        ───────────────────
+        • Run Card: task description
+          scope, constraints, owner
+        • Risk Tier: CRITICAL | HIGH
+          | MEDIUM | LOW | UNVERIFIED
+        • Speckit scope determined
+        • Record risk tier in Run Card"]:::step
+
+        RS["Step 5: 🔬 Research
+        ───────────────────
+        • External docs (APIs, SDKs)
+        • Dependency verification
+        • Official sources only
+        • Prefer docs over blogs"]:::step
+
+        PL["Step 6: 📐 Planning
+        ───────────────────
+        • Specification (Speckit)
+        • Task breakdown
+        • Dependency mapping
+        • Scope proportional to Risk Tier"]:::step
+
+        AR["Step 7: 🏗️ Architecture
+        ───────────────────
+        • ADR if structural change
+        • Coupling/cohesion analysis
+        • Dependency impact review
+        • Alternative evaluation"]:::step
+
+        SE["Step 8: 🔒 Security
+        ───────────────────
+        • Threat model
+        • CVSS vector if vuln
+        • Vulnerability surface
+        • Secret/credential audit
+        ⚠️ RUNS BEFORE COMPLIANCE"]:::step
+
+        CO["Step 9: 📜 Compliance
+        ───────────────────
+        • DSGVO / GDPR audit
+        • Data flow diagram
+        • PII classification
+        • Retention policy check
+        ⚠️ RUNS AFTER SECURITY"]:::step
+
+        RR --> CM --> RC --> RS --> PL --> AR --> SE --> CO
+    end
+
+    %% ============================================================
+    %% VERIFICATION CONTRACT ZONE
+    %% ============================================================
+    subgraph VERIFY ["✅ VERIFICATION CONTRACT ZONE"]
+        VC["Step 10: 📝 Verification Contract
+        ─────────────────────────
+        • Define acceptance criteria
+        • Define evidence required
+        • Define test expectations
+        • Machine-readable conditions
+        (verification-contract skill)"]:::step
+
+        RT["Step 11: 🔴 Red Tests
+        ─────────────────────────
+        • Write failing test
+        • Reproduce the bug/issue
+        • Record red-test output
+        • Must FAIL before fix
+        (anti-fake-execution skill)"]:::step
+
+        OA["Step 12: 👤 Owner Approval Gate
+        ─────────────────────────
+        • Human reviews plan
+        • Human reviews risk tier
+        • Human approves Apply Gate
+        • WARM → HOT transition
+        (owner-approval-gate skill)"]:::gate
+
+        CO --> VC --> RT --> OA
+    end
+
+    %% ============================================================
+    %% IMPLEMENTATION
+    %% ============================================================
+    subgraph IMPL ["💻 IMPLEMENTATION — HOT Context Only"]
+        IM["Step 13: ⚡ Implementation
+        ───────────────────
+        • Code changes
+        • File mutations
+        • Dependency updates
+        • Configuration changes"]:::hot
+
+        LV["Step 14: ✅ Local Validation
+        ───────────────────
+        • Tests pass (green)
+        • Lint passes
+        • Typecheck passes
+        • Build succeeds
+        • Output captured as evidence"]:::hot
+
+        RG["Step 15: 🔍 Reality Gate
+        ───────────────────
+        • git diff --stat review
+        • Compare against plan
+        • No unintended changes
+        • No secret exposure"]:::hot
+
+        TM["Step 16: 🪞 Truth Mirror Update
+        ───────────────────
+        • Layer 0: git status confirm
+        • Layer 1: test output record
+        • Layer 2: evidence collected
+        • Layer 3: docs updated
+        • Layer 4: chat summary"]:::hot
+
+        OA --> IM --> LV --> RG --> TM
+    end
+
+    %% ============================================================
+    %% REVIEW & EVIDENCE
+    %% ============================================================
+    subgraph REVIEW ["🔎 REVIEW & EVIDENCE"]
+        RV["Step 17: 👀 Reviewer
+        ───────────────────
+        • Code review
+        • Regression scan
+        • Security re-check
+        • Compliance re-check
+        (review-agent: leaf node)"]:::step
+
+        EA["Step 18: 📦 Evidence-Abschluss
+        ───────────────────
+        • Collect all evidence
+        • Validate against
+          Verification Contract
+        • Check all gates passed
+        • Generate completion report
+        (evidence-gates.json)"]:::step
+
+        TM --> RV --> EA
+    end
+
+    %% ============================================================
+    %% RELEASE GATES
+    %% ============================================================
+    subgraph GATES ["🚦 9 SEPARATE RELEASE GATES"]
+        CG["Step 19: 📝 Commit Gate
+        ─────────────
+        git commit
+        Default: ASK
+        LOW → allow
+        HIGH/CRIT → deny"]:::gate
+
+        PG["Step 20: 📤 Push Gate
+        ─────────────
+        git push
+        Default: DENY
+        Always: human needed"]:::gate
+
+        PRG["Step 21: 🔀 PR Gate
+        ─────────────
+        gh pr create
+        Default: DENY
+        Always: human needed"]:::gate
+
+        MG["Step 22: 🔗 Merge Gate
+        ─────────────
+        gh pr merge
+        Default: DENY
+        Requires: CI green
+        + human approval"]:::gate
+
+        DG["Step 23: 🚀 Deploy Gate
+        ─────────────
+        docker compose prod
+        npm publish
+        Default: DENY
+        Always: human needed
+        No risk-tier override"]:::gate
+
+        EA --> CG --> PG --> PRG --> MG --> DG
+    end
+
+    %% Step 24 — Final Truth Mirror
+    TMF["Step 24: 🪞 Final Truth Mirror
+    ─────────────────────────
+    • All 5 layers aligned
+    • git tag if applicable
+    • Release notes
+    • Archival evidence package"]:::truth
+
+    DG --> TMF
+
+    %% ============================================================
+    %% TRUTH LAYERS (0-4)
+    %% ============================================================
+    subgraph TRUTH_LAYERS ["🪞 TRUTH LAYERS — Evidentiary Hierarchy"]
+        direction TB
+        TL0["Layer 0: REALITY
+        ─────────────────
+        git status, file contents,
+        filesystem state
+        ⬆️ HIGHEST TRUST"]:::truth
+
+        TL1["Layer 1: EXECUTABLE
+        ─────────────────
+        Test output, compiler output,
+        linter output, runtime logs"]:::truth
+
+        TL2["Layer 2: EVIDENCE
+        ─────────────────
+        Screenshots, captured logs,
+        CVSS vectors, PoC artifacts"]:::truth
+
+        TL3["Layer 3: DOCUMENTATION
+        ─────────────────
+        Policies, README, ADRs,
+        working method, manifest"]:::truth
+
+        TL4["Layer 4: MEMORY / CHAT
+        ─────────────────
+        Agent output, chat history,
+        model generations
+        ⬇️ LOWEST TRUST"]:::truth
+
+        TL0 -->|"invalidates on conflict"| TL1
+        TL1 -->|"invalidates on conflict"| TL2
+        TL2 -->|"invalidates on conflict"| TL3
+        TL3 -->|"invalidates on conflict"| TL4
+    end
+
+    %% ============================================================
+    %% WORKFLOW RISK TIERS (separate from MCP Trust Tiers)
+    %% ============================================================
+    subgraph RISK_TIERS ["⚠️ WORKFLOW RISK TIERS — Change Impact"]
+        direction LR
+        CRIT["🔴 CRITICAL
+        ─────────
+        Security patch
+        Data loss
+        PII exposure
+        Auth bypass
+        ─────────
+        Full Speckit
+        Gate: Push"]:::risk
+
+        HIGH["🟠 HIGH
+        ─────────
+        Breaking change
+        Architecture shift
+        DB migration
+        Framework upgrade
+        ─────────
+        Full Speckit
+        Gate: Apply"]:::risk
+
+        MED["🟡 MEDIUM
+        ─────────
+        Config change
+        New feature
+        Dependency update
+        ─────────
+        Reduced Speckit
+        Gate: Commit"]:::risk
+
+        LOW["🟢 LOW
+        ─────────
+        Typo fix
+        Formatting
+        Docs update
+        ─────────
+        No Speckit
+        Gate: None"]:::risk
+
+        UNK["⚪ UNVERIFIED
+        ─────────
+        Unknown scope
+        Ambiguous impact
+        ─────────
+        Full Speckit
+        Gate: Push"]:::risk
+    end
+
+    %% ============================================================
+    %% MCP TRUST TIERS (separate dimension)
+    %% ============================================================
+    subgraph MCP_TIERS ["🔐 MCP TRUST TIERS — Tool Capability"]
+        direction LR
+        T0["Tier 0: READONLY
+        ───────────────
+        Remote read-only
+        No filesystem
+        No shell
+        ───────────────
+        GitHub, Brave Search,
+        Context7
+        (default: disabled)"]:::mcp
+
+        T1["Tier 1: SANDBOXED
+        ───────────────
+        Project-local write
+        Container isolation
+        Localhost network
+        ───────────────
+        Playwright, Docker,
+        SQLite
+        (default: disabled)"]:::mcp
+
+        T2["Tier 2: TRUSTED
+        ───────────────
+        Full write access
+        External filesystem
+        Human gate required
+        ───────────────
+        Filesystem (external),
+        PostgreSQL
+        (default: disabled)"]:::mcp
+    end
+
+    %% ============================================================
+    %% APPROVAL GATES SUMMARY
+    %% ============================================================
+    subgraph APPROVAL_GATES ["👤 9 APPROVAL GATES — Summary"]
+        direction LR
+        AG1["Apply
+        File mutation"]:::approval
+        AG2["Commit
+        Local commit"]:::approval
+        AG3["Push
+        Remote push"]:::approval
+        AG4["PR
+        Pull request"]:::approval
+        AG5["Merge
+        PR merge"]:::approval
+        AG6["Deploy
+        Production"]:::approval
+        AG7["Remote CI
+        Workflows"]:::approval
+        AG8["Skill Write
+        Skill files"]:::approval
+        AG9["Memory Write
+        Agent memory"]:::approval
+    end
+
+    %% ============================================================
+    %% NON-TOUCH AREAS
+    %% ============================================================
+    subgraph NONTOUCH ["🚫 NON-TOUCH AREAS — Never Modified by Agents"]
+        direction LR
+        NT1["opencode.jsonc
+        structural config"]:::nontouch
+        NT2[".opencode/policies/
+        security policies"]:::nontouch
+        NT3[".opencode/agents/
+        agent definitions"]:::nontouch
+        NT4[".github/workflows/
+        CI workflows"]:::nontouch
+        NT5["SECURITY.md
+        security policy"]:::nontouch
+        NT6["LICENSE
+        legal document"]:::nontouch
+        NT7["*.db, *.env
+        data & secrets"]:::nontouch
+        NT8["package.json
+        human approval"]:::nontouch
+    end
+
+    %% ============================================================
+    %% CROSS-CUTTING CONNECTIONS
+    %% ============================================================
+
+    %% Preflight feeds into Reality Refresh
+    PF --> RR
+
+    %% Context transitions are separate from the workflow but gate it
+    COLD -.->|"read-only allowed"| RR
+    WARM -.->|"planning allowed"| CORE
+    HOT -.->|"implementation allowed"| IMPL
+
+    %% Risk tier routing influences the workflow
+    RISK_TIERS -.->|"classifies"| RC
+
+    %% Truth layers are checked throughout
+    TRUTH_LAYERS -.->|"validated at"| RR
+    TRUTH_LAYERS -.->|"validated at"| RG
+    TRUTH_LAYERS -.->|"validated at"| TM
+    TRUTH_LAYERS -.->|"validated at"| TMF
+
+    %% MCP Trust Tiers are orthogonal
+    MCP_TIERS -.->|"separate dimension"| RISK_TIERS
+
+    %% Approval gates trigger at release
+    APPROVAL_GATES -.->|"enforced at"| GATES
+
+    %% Non-touch areas are enforced at Apply Gate and Implementation
+    NONTOUCH -.->|"enforced at"| OA
+    NONTOUCH -.->|"enforced at"| IM
+
+    %% Layout hint
+    TMF ~~~ CONTEXT_LEVELS

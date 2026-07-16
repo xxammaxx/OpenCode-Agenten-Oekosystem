@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "description": "Defines mandatory evidence requirements before agents can make specific claim types",
+  "version": "1.1.0",
+  "description": "Defines mandatory evidence requirements before agents can make specific claim types. Includes structural-vs-live differentiation.",
 
   "gates": {
     "severity_claim": {
@@ -62,7 +62,13 @@
         "visual_regression_passed"
       ],
       "prohibited_without": ["done", "completed"],
-      "allow_fallback": "IN_PROGRESS"
+      "allow_fallback": "IN_PROGRESS",
+      "evidence_modifiers": {
+        "visual_regression_passed": {
+          "when_applicable": true,
+          "notes": "Only required for UI/frontend changes. Structural or backend-only features may omit."
+        }
+      }
     },
     "compliance_claim": {
       "description": "Before claiming DSGVO/GDPR compliance",
@@ -75,6 +81,88 @@
       ],
       "prohibited_without": ["compliant", "dsgvo_ready", "gdpr_ready"],
       "allow_fallback": "PENDING_AUDIT"
+    },
+    "verification_contract": {
+      "description": "Before proceeding with implementation, a Verification Contract must be complete",
+      "required_evidence": [
+        "desired_behavior",
+        "acceptance_criteria",
+        "red_tests",
+        "regression_tests",
+        "reality_gate",
+        "evidence_types",
+        "untestable_assumptions"
+      ],
+      "prohibited_without": ["ready_for_implementation"],
+      "allow_fallback": "PENDING_SPEC",
+      "validation": {
+        "desired_behavior_must_be": "specific_and_testable",
+        "acceptance_criteria_must_be": "measurable_conditions",
+        "red_tests_must_be": "list_or_explicit_exemption",
+        "regression_tests_must_be": "list_or_explicit_not_applicable"
+      }
+    },
+    "red_test_evidence": {
+      "description": "Before claiming a test-driven implementation is valid, red/green cycle must be evidenced",
+      "required_evidence": [
+        "failing_test_output_before",
+        "passing_test_output_after"
+      ],
+      "prohibited_without": ["tdd_validated"],
+      "allow_fallback": "STRUCTURAL_ONLY",
+      "validation": {
+        "failing_test_output_before": {
+          "when_applicable": true,
+          "notes": "Red test evidence is mandatory when TDD is possible. For structural changes (docs, config without logic), mark as STRUCTURAL_ONLY."
+        },
+        "passing_test_output_after": {
+          "when_applicable": true,
+          "notes": "Required when a red test was written before implementation. May be omitted for STRUCTURAL_ONLY changes."
+        }
+      },
+      "structural_vs_live_marker": {
+        "description": "Distinguishes between structural validation and live execution for this gate",
+        "structural": {
+          "indicator": "STRUCTURAL_ONLY",
+          "applies_to": ["documentation", "configuration_without_logic", "metadata", "comments"],
+          "evidence_requirements": ["syntax_check", "git_diff_stat"]
+        },
+        "live": {
+          "indicator": "LIVE_EXECUTION",
+          "applies_to": ["code_logic", "tests", "integration", "runtime_behavior"],
+          "evidence_requirements": ["actual_test_run_output", "logs", "exit_codes"]
+        }
+      }
+    },
+    "tool_gap_claim": {
+      "description": "Before claiming a tool gap prevents execution",
+      "required_evidence": [
+        "tool_discovery_output",
+        "runtime_state",
+        "classification_rationale"
+      ],
+      "prohibited_without": ["TOOL_GAP"],
+      "allow_fallback": "UNVERIFIED_GAP",
+      "validation": {
+        "tool_discovery_output_must_be": "actual_command_output_or_error",
+        "runtime_state_must_be": "os_shell_runtime_version",
+        "classification_rationale_must_be": "why_tool_is_needed_and_why_missing"
+      }
+    },
+    "remote_operation_claim": {
+      "description": "Before claiming a remote operation succeeded",
+      "required_evidence": [
+        "actual_api_response",
+        "timestamp",
+        "correlation_id"
+      ],
+      "prohibited_without": ["remote_success", "api_confirmed"],
+      "allow_fallback": "SIMULATED_LOCAL",
+      "validation": {
+        "actual_api_response_must_be": "captured_http_response_or_error",
+        "timestamp_must_be": "ISO8601_precise",
+        "correlation_id_must_be": "unique_per_request"
+      }
     }
   },
 
