@@ -37,7 +37,7 @@ function loadSourceLock() {
 }
 
 function sha256(content) {
-  return createHash('sha256').update(content).digest('hex');
+  return `sha256:${createHash('sha256').update(content).digest('hex')}`;
 }
 
 function validateRuntimeIntegrity() {
@@ -55,8 +55,9 @@ function validateRuntimeIntegrity() {
     }
     const content = readFileSync(filePath, 'utf-8');
     const actualHash = sha256(content);
-    if (actualHash !== entry.hash) {
-      mismatches.push({ path: entry.path, expected: entry.hash, actual: actualHash });
+    const expectedHash = entry.sha256 || entry.hash || '';
+    if (actualHash !== expectedHash) {
+      mismatches.push({ path: entry.path, expected: expectedHash, actual: actualHash });
     }
   }
   if (mismatches.length > 0) {
@@ -151,13 +152,25 @@ function mapToolToDescriptor(tool, args) {
 async function evaluateByGate(descriptor) {
   const mod = await loadEvaluateModule();
   if (!mod || typeof mod.evaluateAllGates !== 'function') {
-    return { decision: 'NOOP', reason: 'gate evaluator not available' };
+    return {
+      decision: 'RED_BLOCK',
+      classification: 'RED_BLOCK',
+      allowed: false,
+      blockedBy: [{ code: 'GOVERNANCE_EVALUATOR_UNAVAILABLE', message: 'Gate evaluator not available or not a function' }],
+      reason: 'gate evaluator not available',
+    };
   }
   try {
     const result = await mod.evaluateAllGates(descriptor);
     return result;
   } catch (err) {
-    return { decision: 'ERROR', reason: `gate evaluation crashed: ${err.message}` };
+    return {
+      decision: 'RED_BLOCK',
+      classification: 'RED_BLOCK',
+      allowed: false,
+      blockedBy: [{ code: 'GOVERNANCE_EVALUATOR_ERROR', message: `Gate evaluation crashed: ${err.message}` }],
+      reason: `gate evaluation crashed: ${err.message}`,
+    };
   }
 }
 
@@ -243,7 +256,6 @@ async function handleToolExecution(input, output) {
   switch (decision) {
     case 'GREEN':
     case 'ALLOW':
-    case 'NOOP':
       return undefined;
 
     case 'RED_BLOCK':
@@ -262,28 +274,43 @@ async function handleToolExecution(input, output) {
         `${gateResult.reason || 'approval required by gate policy'}.`
       );
 
-    case 'ERROR':
-      if (risk === 'WRITE' || risk === 'EXTERNAL') {
-        throw new Error(
-          `[canonical-governance] BLOCKED: gate evaluation error for tool "${tool}" (${risk}). ` +
-          `Fail-closed enforcement triggered. ${gateResult.reason || ''}`
-        );
-      }
-      return undefined;
-
     default:
-      if (risk === 'WRITE' && decision !== 'GREEN') {
+      // FAIL-CLOSED: Unknown decisions, NOOP, and ERROR all block write/external/delegate
+      if (risk === 'WRITE' || risk === 'EXTERNAL' || risk === 'DELEGATE') {
         throw new Error(
           `[canonical-governance] BLOCKED: unknown gate decision "${decision}" for tool "${tool}" (${risk}). ` +
-          `Fail-closed for write operations.`
+          `Fail-closed enforcement triggered.`
         );
       }
       return undefined;
   }
 }
 
-export const hooks = {
-  'tool.execute.before': async function (input, output) {
-    return handleToolExecution(input, output);
-  },
+/**
+ * Canonical Governance Plugin for OpenCode.
+ *
+ * OpenCode plugin contract: a named async function that receives a context
+ * object and returns a hooks object. The context provides project, client,
+ * directory, and worktree information.
+ *
+ * @param {Object} ctx - Plugin context from OpenCode
+ * @param {Object} ctx.project - Current project information
+ * @param {Object} ctx.client - OpenCode SDK client
+ * @param {string} ctx.directory - Current working directory
+ * @param {string} ctx.worktree - Git worktree path
+ * @returns {Object} Hooks object with tool.execute.before handler
+ */
+export const CanonicalGovernancePlugin = async ({ project = {}, client = null, directory, worktree }) => {
+  // Use the context-provided directory/root, not process.cwd()
+  const pluginRoot = directory || worktree || process.cwd();
+  
+  return {
+    'tool.execute.before': async function (input, output) {
+      return handleToolExecution(input, output);
+    },
+  };
 };
+
+// Legacy bare hooks export for backward compatibility during transition
+// TODO: Remove after all consumers migrate to CanonicalGovernancePlugin
+export const hooks = CanonicalGovernancePlugin; // Function, not bare object

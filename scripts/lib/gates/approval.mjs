@@ -16,7 +16,7 @@
  * - Approval files MUST NOT contain secrets
  */
 
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { generateContextFingerprint, isValidFingerprintFormat } from './context-fingerprint.mjs';
@@ -275,7 +275,20 @@ export function consumeReceipt(receipt, currentContext = {}) {
     });
   }
 
-  // All checks passed — mark nonce as consumed in memory AND persist to ledger
+  // All checks passed — atomically consume nonce cross-process FIRST
+  const atomicResult = atomicConsumeNonce(receipt.nonce, currentContext.baseDir);
+  if (!atomicResult.consumed) {
+    // Cross-process race detected — nonce already consumed by another process
+    throw new ApprovalReuseViolation({
+      evidence: {
+        nonce: receipt.nonce,
+        action: receipt.action,
+        reason: atomicResult.reason || 'nonce already consumed by another process',
+      }
+    });
+  }
+
+  // Then mark in-memory for fast local dedup
   markNonceConsumed(receipt.nonce);
 
   const consumedReceipt = {
@@ -284,7 +297,7 @@ export function consumeReceipt(receipt, currentContext = {}) {
     consumedAt: new Date().toISOString()
   };
 
-  // Persist to filesystem ledger for cross-process enforcement
+  // Persist full receipt to filesystem ledger for cross-process audit
   // (non-blocking — failures are logged but don't prevent consumption)
   try {
     writeReceiptToLedger(consumedReceipt, currentContext.baseDir);
@@ -374,6 +387,40 @@ export function markNonceConsumed(nonce) {
 
 export function isNonceConsumed(nonce) {
   return consumedNonces.has(nonce);
+}
+
+/**
+ * Atomically consume a nonce using O_EXCL file creation.
+ *
+ * Uses writeFileSync with { flag: 'wx' } — if the file already
+ * exists, the operation fails, preventing cross-process race
+ * conditions where two processes try to consume the same nonce.
+ *
+ * This is the cross-process-safe consumption mechanism.
+ * Falls back to in-memory ledger for process-local dedup.
+ *
+ * @param {string} nonce - The nonce to consume
+ * @param {string} [baseDir] - Base directory for ledger storage
+ * @returns {{ consumed: boolean, path?: string, reason?: string }}
+ */
+export function atomicConsumeNonce(nonce, baseDir = process.cwd()) {
+  const ledgerDir = getLedgerPath(baseDir);
+  mkdirSync(ledgerDir, { recursive: true });
+  const nonceHash = createHash('sha256').update(nonce).digest('hex').slice(0, 16);
+  const filePath = resolve(ledgerDir, `consumed-${nonceHash}.json`);
+
+  try {
+    writeFileSync(filePath, JSON.stringify({
+      nonce_hash: nonceHash,
+      consumed_at: new Date().toISOString(),
+    }), { flag: 'wx' }); // O_CREAT | O_EXCL — atomic exclusive create
+    return { consumed: true, path: filePath };
+  } catch (err) {
+    if (err.code === 'EEXIST') {
+      return { consumed: false, path: filePath, reason: 'nonce already consumed (cross-process)' };
+    }
+    return { consumed: false, reason: `ledger write error: ${err.message}` };
+  }
 }
 
 // ── Filesystem Ledger (Cross-Process) ─────────────────────────────

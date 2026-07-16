@@ -21,22 +21,22 @@ def register(ctx):
     ctx.register_hook("pre_tool_call", pre_tool_call_handler)
 
     ctx.register_command(
-        "/governance-install",
+        "governance-install",
         governance_install,
         "Install governance into current project",
     )
     ctx.register_command(
-        "/governance-status",
+        "governance-status",
         governance_status,
         "Show governance enforcement status",
     )
     ctx.register_command(
-        "/governance-doctor",
+        "governance-doctor",
         governance_doctor,
         "Diagnose governance installation",
     )
     ctx.register_command(
-        "/governance-rollback",
+        "governance-rollback",
         governance_rollback,
         "Rollback governance installation",
     )

@@ -2,7 +2,8 @@
 
 Bridges Python (Hermes hooks and slash commands) to the canonical gate
 evaluation entry point ``scripts/lib/gates/evaluate-all.mjs`` via its
-CLI wrapper ``scripts/evaluate-gates.mjs`` using ``subprocess``.
+resident CLI wrapper ``.agent-governance/bin/evaluate.mjs`` or the
+plugin-repo fallback ``scripts/evaluate-gates.mjs`` using ``subprocess``.
 
 Exit code contract of the CLI:
     0 = GREEN_SAFE
@@ -49,21 +50,28 @@ def find_evaluator(governance_root=None):
     """Locate the gate evaluator CLI script.
 
     Search order:
-    1. ``<governance_root>/.agent-governance/runtime/evaluate-gates.mjs``
-       (project-local installed runtime)
-    2. ``<plugin repo>/scripts/evaluate-gates.mjs``
-       (the Hermes plugin checkout itself)
+    1. ``<governance_root>/.agent-governance/bin/evaluate.mjs``
+       (project-local installed resident CLI)
+    2. ``<governance_root>/.agent-governance/runtime/gates/evaluate-all.mjs``
+       (project-local installed runtime — direct import by node)
+    3. ``<plugin repo>/scripts/evaluate-gates.mjs``
+       (the Hermes plugin checkout itself — fallback only)
 
     Returns a ``Path`` or ``None`` when no evaluator is available.
     """
     candidates = []
     if governance_root:
         candidates.append(
+            Path(governance_root) / ".agent-governance" / "bin" / "evaluate.mjs"
+        )
+        candidates.append(
             Path(governance_root)
             / ".agent-governance"
             / "runtime"
-            / "evaluate-gates.mjs"
+            / "gates"
+            / "evaluate-all.mjs"
         )
+    # Plugin repo fallback (only when no project-local runtime is installed)
     candidates.append(_plugin_repo_root() / "scripts" / "evaluate-gates.mjs")
 
     for candidate in candidates:

@@ -67,13 +67,11 @@ describe('Resident Runtime', () => {
   // ── evaluate-all.mjs works from installed location ──────────
 
   it('evaluate-all.mjs is installed as a file', async () => {
-    const evalAllPath = path.join(target, '.agent-governance', 'runtime', 'evaluate-all.mjs');
-    assert.ok(existsSync(evalAllPath), 'evaluate-all.mjs should be installed');
+    const evalAllPath = path.join(target, '.agent-governance', 'runtime', 'gates', 'evaluate-all.mjs');
+    assert.ok(existsSync(evalAllPath), 'evaluate-all.mjs should be installed in runtime/gates/');
 
-    // The installed runtime files are designed to be called via bin/evaluate.mjs
-    // or hook scripts, not imported directly in the flat runtime/ directory.
-    // Source repo imports use ../runtimes/contract.mjs etc. which resolve
-    // from scripts/lib/gates/ but not from the flat install directory.
+    // Runtime preserves gates/ and runtimes/ subdirectory structure
+    // so that ../runtimes/imports resolve correctly
     const content = readFileSync(evalAllPath, 'utf8');
     assert.ok(content.includes('evaluateAllGates'), 'Should contain evaluateAllGates');
     assert.ok(content.includes('export'), 'Should contain exports');
@@ -107,8 +105,8 @@ describe('Resident Runtime', () => {
   // ── Kernel gates work from installed copy ──────────────────
 
   it('kernel gates are evaluable from installed copy', async () => {
-    const kernelPath = path.join(target, '.agent-governance', 'runtime', 'kernel.mjs');
-    assert.ok(existsSync(kernelPath), 'kernel.mjs should be installed');
+    const kernelPath = path.join(target, '.agent-governance', 'runtime', 'gates', 'kernel.mjs');
+    assert.ok(existsSync(kernelPath), 'kernel.mjs should be installed in runtime/gates/');
 
     const mod = await import(kernelPath);
     assert.ok(typeof mod.evaluateKernelGates === 'function', 'evaluateKernelGates should export');
@@ -128,11 +126,11 @@ describe('Resident Runtime', () => {
   // ── Runtime detection files are installed ─────────────
 
   it('runtime adapter files are installed', async () => {
-    const runtimeDir = path.join(target, '.agent-governance', 'runtime');
+    const runtimesDir = path.join(target, '.agent-governance', 'runtime', 'runtimes');
     const expectedAdapters = ['contract.mjs', 'generic.mjs', 'opencode.mjs', 'hermes.mjs', 'odysseus.mjs'];
     for (const file of expectedAdapters) {
-      const fp = path.join(runtimeDir, file);
-      assert.ok(existsSync(fp), `Runtime adapter ${file} should be installed`);
+      const fp = path.join(runtimesDir, file);
+      assert.ok(existsSync(fp), `Runtime adapter ${file} should be installed in runtime/runtimes/`);
 
       // Verify it's a real file with content
       const content = readFileSync(fp, 'utf8');
@@ -166,8 +164,8 @@ describe('Resident Runtime', () => {
   // ── Classifications module works from installed copy ───────
 
   it('classification resolution works from installed copy', async () => {
-    const classificationsPath = path.join(target, '.agent-governance', 'runtime', 'classifications.mjs');
-    assert.ok(existsSync(classificationsPath), 'classifications.mjs should exist');
+    const classificationsPath = path.join(target, '.agent-governance', 'runtime', 'gates', 'classifications.mjs');
+    assert.ok(existsSync(classificationsPath), 'classifications.mjs should exist in runtime/gates/');
 
     const mod = await import(classificationsPath);
     assert.strictEqual(mod.CLASSIFICATIONS.RED_BLOCK, 'RED_BLOCK');

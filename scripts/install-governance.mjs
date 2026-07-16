@@ -132,21 +132,25 @@ function validateSourceRepository(repoRoot) {
 }
 
 function getRuntimeFileList() {
+  // Preserve the gates/ and runtimes/ subdirectory structure to keep
+  // relative imports intact (evaluate-all.mjs imports ../runtimes/*.mjs).
   return [
-    { source: "scripts/lib/gates/evaluate-all.mjs", dest: "evaluate-all.mjs" },
-    { source: "scripts/lib/gates/kernel.mjs", dest: "kernel.mjs" },
-    { source: "scripts/lib/gates/policy.mjs", dest: "policy.mjs" },
-    { source: "scripts/lib/gates/decision.mjs", dest: "decision.mjs" },
-    { source: "scripts/lib/gates/approval.mjs", dest: "approval.mjs" },
-    { source: "scripts/lib/gates/evidence.mjs", dest: "evidence.mjs" },
-    { source: "scripts/lib/gates/classifications.mjs", dest: "classifications.mjs" },
-    { source: "scripts/lib/gates/errors.mjs", dest: "errors.mjs" },
-    { source: "scripts/lib/gates/context-fingerprint.mjs", dest: "context-fingerprint.mjs" },
-    { source: "scripts/lib/runtimes/contract.mjs", dest: "contract.mjs" },
-    { source: "scripts/lib/runtimes/generic.mjs", dest: "generic.mjs" },
-    { source: "scripts/lib/runtimes/opencode.mjs", dest: "opencode.mjs" },
-    { source: "scripts/lib/runtimes/hermes.mjs", dest: "hermes.mjs" },
-    { source: "scripts/lib/runtimes/odysseus.mjs", dest: "odysseus.mjs" },
+    // gates/ directory — canonical gate evaluation modules
+    { source: "scripts/lib/gates/evaluate-all.mjs", dest: "gates/evaluate-all.mjs" },
+    { source: "scripts/lib/gates/kernel.mjs", dest: "gates/kernel.mjs" },
+    { source: "scripts/lib/gates/policy.mjs", dest: "gates/policy.mjs" },
+    { source: "scripts/lib/gates/decision.mjs", dest: "gates/decision.mjs" },
+    { source: "scripts/lib/gates/approval.mjs", dest: "gates/approval.mjs" },
+    { source: "scripts/lib/gates/evidence.mjs", dest: "gates/evidence.mjs" },
+    { source: "scripts/lib/gates/classifications.mjs", dest: "gates/classifications.mjs" },
+    { source: "scripts/lib/gates/errors.mjs", dest: "gates/errors.mjs" },
+    { source: "scripts/lib/gates/context-fingerprint.mjs", dest: "gates/context-fingerprint.mjs" },
+    // runtimes/ directory — runtime adapter modules
+    { source: "scripts/lib/runtimes/contract.mjs", dest: "runtimes/contract.mjs" },
+    { source: "scripts/lib/runtimes/generic.mjs", dest: "runtimes/generic.mjs" },
+    { source: "scripts/lib/runtimes/opencode.mjs", dest: "runtimes/opencode.mjs" },
+    { source: "scripts/lib/runtimes/hermes.mjs", dest: "runtimes/hermes.mjs" },
+    { source: "scripts/lib/runtimes/odysseus.mjs", dest: "runtimes/odysseus.mjs" },
   ]
 }
 
@@ -221,7 +225,7 @@ function determineEnforcementLevel(detectedRuntimes) {
 
   if (opencode || hermes) {
     const hasHookSupport = opencode && opencode.confidence >= 80
-    return hasHookSupport ? "HOOK_ENFORCED" : "STRUCTURAL_ONLY"
+    return hasHookSupport ? "STRUCTURAL_HOOK_INSTALLED" : "POLICY_CONFIGURED"
   }
 
   return "ADVISORY_ONLY"
@@ -399,15 +403,26 @@ async function copyPolicies(repoRoot, targetRoot) {
 async function generateSourceLock(repoRoot, targetRoot) {
   const governanceRoot = path.join(targetRoot, ".agent-governance")
   const sourceCommit = await getSourceCommit(repoRoot)
-  const runtimeHashes = {}
+  const files = []
 
   const runtimeFiles = getRuntimeFileList()
   for (const rf of runtimeFiles) {
     const sourcePath = path.join(repoRoot, rf.source)
     try {
-      runtimeHashes[rf.dest] = await sha256File(sourcePath)
+      const content = await fsPromises.readFile(sourcePath, 'utf8')
+      const hash = `sha256:${crypto.createHash('sha256').update(content).digest('hex')}`
+      const stat = await fsPromises.stat(sourcePath)
+      files.push({
+        path: rf.dest,
+        sha256: hash,
+        size: stat.size,
+      })
     } catch {
-      runtimeHashes[rf.dest] = "UNAVAILABLE"
+      files.push({
+        path: rf.dest,
+        sha256: "UNAVAILABLE",
+        size: 0,
+      })
     }
   }
 
@@ -423,11 +438,12 @@ async function generateSourceLock(repoRoot, targetRoot) {
   }
 
   const sourceLock = {
+    schema_version: "1.0.0",
     source_repository: sourceRepo,
     source_commit: sourceCommit || "UNKNOWN",
     installed_at: new Date().toISOString(),
-    runtime_hashes: runtimeHashes,
     enforcement_version: "1.0.0",
+    files,
   }
 
   const destPath = path.join(governanceRoot, "source-lock.json")
@@ -490,7 +506,7 @@ async function installOpenCodeHook(targetRoot) {
   await ensureDirectory(hooksDir)
 
   const hookScript = `#!/usr/bin/env node
-import { evaluateAllGates } from '../../runtime/evaluate-all.mjs';
+import { evaluateAllGates } from '../../runtime/gates/evaluate-all.mjs';
 
 const targetRoot = process.argv[2] || process.cwd();
 const action = process.argv[3] || 'evaluate';
@@ -550,7 +566,7 @@ async function installHermesFiles(targetRoot) {
   await ensureDirectory(hermesGovernanceDir)
 
   const pluginScript = `#!/usr/bin/env node
-import { evaluateAllGates } from '../../.agent-governance/runtime/evaluate-all.mjs';
+import { evaluateAllGates } from '../../.agent-governance/runtime/gates/evaluate-all.mjs';
 import { argv, exit } from 'node:process';
 
 const args = parseArgs(argv.slice(2));
@@ -624,9 +640,9 @@ async function validatePostApply(targetRoot) {
   const warnings = []
 
   const requiredFiles = [
-    path.join(governanceRoot, "runtime", "evaluate-all.mjs"),
-    path.join(governanceRoot, "runtime", "kernel.mjs"),
-    path.join(governanceRoot, "runtime", "classifications.mjs"),
+    path.join(governanceRoot, "runtime", "gates", "evaluate-all.mjs"),
+    path.join(governanceRoot, "runtime", "gates", "kernel.mjs"),
+    path.join(governanceRoot, "runtime", "gates", "classifications.mjs"),
     path.join(governanceRoot, "manifest.json"),
     path.join(governanceRoot, "source-lock.json"),
     path.join(governanceRoot, "bin", "evaluate.mjs"),
@@ -640,9 +656,16 @@ async function validatePostApply(targetRoot) {
 
   const runtimeDir = path.join(governanceRoot, "runtime")
   if (fs.existsSync(runtimeDir)) {
-    const entries = fs.readdirSync(runtimeDir)
-    if (entries.length < 10) {
-      warnings.push(`Runtime directory has fewer than expected files: ${entries.length}`)
+    // Count files in gates/ and runtimes/ subdirectories
+    let fileCount = 0;
+    for (const sub of ["gates", "runtimes"]) {
+      const subDir = path.join(runtimeDir, sub);
+      if (fs.existsSync(subDir)) {
+        fileCount += fs.readdirSync(subDir).filter(f => f.endsWith(".mjs")).length;
+      }
+    }
+    if (fileCount < 10) {
+      warnings.push(`Runtime directory has fewer than expected files: ${fileCount}`);
     }
   } else {
     issues.push("Missing runtime directory")
@@ -663,8 +686,8 @@ async function validatePostApply(targetRoot) {
       if (!sourceLock.source_commit || sourceLock.source_commit === "UNKNOWN") {
         warnings.push("source-lock.json has no valid source commit")
       }
-      if (!sourceLock.runtime_hashes || Object.keys(sourceLock.runtime_hashes).length < 5) {
-        warnings.push("source-lock.json has fewer runtime hashes than expected")
+      if (!sourceLock.files || !Array.isArray(sourceLock.files) || sourceLock.files.length < 5) {
+        warnings.push("source-lock.json has fewer files than expected")
       }
     } catch {
       issues.push("source-lock.json is not valid JSON")
@@ -978,7 +1001,7 @@ async function runDryRunPhase(args) {
         .filter((r) => r.confidence >= 50)
         .map((r) => ({
           runtime: r.name,
-          level: r.name === "opencode" || r.name === "hermes" ? "HOOK_ENFORCED" : "ADVISORY_ONLY",
+          level: r.name === "opencode" || r.name === "hermes" ? "STRUCTURAL_HOOK_INSTALLED" : "POLICY_CONFIGURED",
         })),
       files: filePlan.map((f) => ({
         path: f.path,
@@ -1022,7 +1045,7 @@ async function runDryRunPhase(args) {
     console.log(`\nEnforcement Reachable:`)
     for (const r of detectedRuntimes) {
       if (r.confidence >= 50) {
-        const level = r.name === "opencode" || r.name === "hermes" ? "HOOK_ENFORCED" : "ADVISORY_ONLY"
+        const level = r.name === "opencode" || r.name === "hermes" ? "STRUCTURAL_HOOK_INSTALLED" : "POLICY_CONFIGURED"
         console.log(`  - ${r.name}: ${level}`)
       }
     }

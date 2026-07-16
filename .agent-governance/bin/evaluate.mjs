@@ -68,7 +68,7 @@ Exit Codes:
   }
 
   try {
-    const mod = await import('../runtime/evaluate-all.mjs');
+    const mod = await import('../runtime/gates/evaluate-all.mjs');
 
     if (!mod || typeof mod.evaluateAllGates !== 'function') {
       console.error('ERROR: Runtime loaded but evaluateAllGates function not found.');

@@ -211,15 +211,26 @@ describe('URL Installer', () => {
     const runtimeDir = path.join(t, '.agent-governance', 'runtime');
     assert.ok(existsSync(runtimeDir), 'runtime/ should exist');
 
-    const expectedRuntimeFiles = [
+    // Gates directory
+    const gatesDir = path.join(runtimeDir, 'gates');
+    assert.ok(existsSync(gatesDir), 'runtime/gates/ should exist');
+    const expectedGateFiles = [
       'evaluate-all.mjs', 'kernel.mjs', 'policy.mjs', 'decision.mjs',
       'approval.mjs', 'evidence.mjs', 'classifications.mjs', 'errors.mjs',
-      'context-fingerprint.mjs', 'contract.mjs', 'generic.mjs', 'opencode.mjs',
-      'hermes.mjs', 'odysseus.mjs'
+      'context-fingerprint.mjs'
     ];
-    for (const file of expectedRuntimeFiles) {
-      const fp = path.join(runtimeDir, file);
-      assert.ok(existsSync(fp), `Runtime file ${file} should exist`);
+    for (const file of expectedGateFiles) {
+      const fp = path.join(gatesDir, file);
+      assert.ok(existsSync(fp), `Gate file ${file} should exist in runtime/gates/`);
+    }
+
+    // Runtimes directory
+    const runtimesDir = path.join(runtimeDir, 'runtimes');
+    assert.ok(existsSync(runtimesDir), 'runtime/runtimes/ should exist');
+    const expectedAdapterFiles = ['contract.mjs', 'generic.mjs', 'opencode.mjs', 'hermes.mjs', 'odysseus.mjs'];
+    for (const file of expectedAdapterFiles) {
+      const fp = path.join(runtimesDir, file);
+      assert.ok(existsSync(fp), `Adapter file ${file} should exist in runtime/runtimes/`);
     }
   });
 
@@ -250,14 +261,17 @@ describe('URL Installer', () => {
     assert.ok(existsSync(lockPath), 'source-lock.json should exist');
 
     const lock = JSON.parse(readFileSync(lockPath, 'utf8'));
-    assert.ok(lock.runtime_hashes, 'source-lock should have runtime_hashes');
-    assert.ok(Object.keys(lock.runtime_hashes).length >= 5, `Expected >= 5 hashes, got ${Object.keys(lock.runtime_hashes).length}`);
+    assert.ok(lock.files && Array.isArray(lock.files), 'source-lock should have files array');
+    assert.ok(lock.files.length >= 5, `Expected >= 5 files, got ${lock.files.length}`);
+    assert.ok(lock.schema_version, 'source-lock should have schema_version');
     assert.ok(lock.enforcement_version, 'source-lock should have enforcement_version');
 
-    // Verify hashes use sha256: prefix
-    for (const [key, hash] of Object.entries(lock.runtime_hashes)) {
-      if (hash !== 'UNAVAILABLE') {
-        assert.ok(hash.startsWith('sha256:'), `Hash for ${key} should start with sha256:, got: ${hash}`);
+    // Verify files entries have sha256 and path
+    for (const entry of lock.files) {
+      assert.ok(entry.path, `File entry should have path`);
+      if (entry.sha256 !== 'UNAVAILABLE') {
+        assert.ok(entry.sha256.startsWith('sha256:'),
+          `sha256 should start with sha256:, got: ${entry.sha256?.slice(0, 30)}`);
       }
     }
   });

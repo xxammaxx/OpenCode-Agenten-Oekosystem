@@ -5,6 +5,9 @@ import json
 import hashlib
 from pathlib import Path
 
+# Import the canonical evaluator client
+from .runtime_client import evaluate as evaluate_gate, block_message
+
 # Tool risk classification
 WRITE_TOOLS = {"bash", "write_file", "edit_file", "create_file", "delete_file"}
 EXTERNAL_TOOLS = {"web_fetch", "web_search", "http_request"}
@@ -69,19 +72,28 @@ def pre_tool_call_handler(tool_name, args, session_id=None):
     if source_lock.exists():
         try:
             lock_data = json.loads(source_lock.read_text())
-            runtime_hashes = lock_data.get("runtime_hashes", {})
-            # Verify runtime files match hashes
+            files = lock_data.get("files", [])
+            # Verify runtime files match hashes (unified files[] format)
             runtime_dir = gov_root / ".agent-governance" / "runtime"
-            for filename, expected_hash in runtime_hashes.items():
+            for entry in files:
+                filename = entry.get("path", "")
+                expected_hash = entry.get("sha256", "")
+                if not filename or expected_hash == "UNAVAILABLE":
+                    continue
                 file_path = runtime_dir / filename
                 if file_path.exists():
                     actual_hash = hashlib.sha256(file_path.read_bytes()).hexdigest()
-                    if actual_hash != expected_hash.split(":")[-1]:
+                    if actual_hash != expected_hash:
                         if tool_name in WRITE_TOOLS or tool_name in EXTERNAL_TOOLS:
                             return {
                                 "action": "block",
                                 "message": f"GOVERNANCE TAMPERED: Runtime file {filename} hash mismatch. All write/external operations blocked.",
                             }
+                elif tool_name in WRITE_TOOLS or tool_name in EXTERNAL_TOOLS:
+                    return {
+                        "action": "block",
+                        "message": f"GOVERNANCE TAMPERED: Runtime file {filename} missing. All write/external operations blocked.",
+                    }
         except Exception as e:
             if tool_name in WRITE_TOOLS or tool_name in EXTERNAL_TOOLS:
                 return {
@@ -89,11 +101,15 @@ def pre_tool_call_handler(tool_name, args, session_id=None):
                     "message": f"GOVERNANCE RUNTIME UNAVAILABLE: {str(e)}. Write/external operations blocked.",
                 }
 
-    # 3. For write and external tools, enforce gate evaluation
-    if tool_name in WRITE_TOOLS or tool_name in EXTERNAL_TOOLS:
+    # 3. For write, external, and delegate tools — call the canonical evaluator
+    if (
+        tool_name in WRITE_TOOLS
+        or tool_name in EXTERNAL_TOOLS
+        or tool_name in DELEGATE_TOOLS
+    ):
         descriptor = _map_hermes_tool(tool_name, args)
 
-        # Check for force push / destructive git operations
+        # Defense-in-depth: inline kernel checks (fast path for critical patterns)
         if tool_name == "bash" and args.get("command", ""):
             cmd = args.get("command", "")
             if "--force" in cmd or ("-f" in cmd and "push" in cmd):
@@ -107,15 +123,39 @@ def pre_tool_call_handler(tool_name, args, session_id=None):
                     "message": f"KERNEL GATE: Destructive command blocked: {cmd[:80]}",
                 }
 
-        # Check write paths for escape
+        # Path containment: defense-in-depth (proper check via os.path.commonpath)
         for wp in descriptor.get("writePaths", []):
-            wp_abs = str(Path(wp).resolve())
-            gov_root_str = str(gov_root.resolve())
-            if not wp_abs.startswith(gov_root_str) and not wp_abs.startswith("/tmp/"):
-                return {
-                    "action": "block",
-                    "message": f"KERNEL GATE: NO_PATH_ESCAPE — Write path {wp} is outside governance root.",
-                }
+            wp_abs = os.path.realpath(str(wp))
+            gov_root_str = os.path.realpath(str(gov_root))
+            # Safe containment: write path must be within governance root or project .agent-governance/state/tmp/
+            allowed_tmp = os.path.join(
+                gov_root_str, ".agent-governance", "state", "tmp"
+            )
+            if os.path.commonpath([wp_abs, gov_root_str]) != gov_root_str:
+                if not wp_abs.startswith(allowed_tmp):
+                    return {
+                        "action": "block",
+                        "message": f"KERNEL GATE: NO_PATH_ESCAPE — Write path {wp} is outside governance root.",
+                    }
+
+        # Canonical evaluator: the primary gate decision
+        try:
+            decision = evaluate_gate(descriptor, governance_root=str(gov_root))
+        except Exception as exc:
+            return {
+                "action": "block",
+                "message": f"GOVERNANCE EVALUATOR ERROR: {str(exc)}. Write/external operations blocked.",
+            }
+
+        classification = decision.get("classification", "RED_BLOCK")
+        allowed = decision.get("allowed", False)
+
+        if classification == "GREEN_SAFE" and allowed:
+            return None  # Pass
+
+        # Block everything else
+        msg = block_message(decision)
+        return {"action": "block", "message": msg}
 
     # 4. Allow safe operations (reads, questions)
     return None
@@ -124,7 +164,10 @@ def pre_tool_call_handler(tool_name, args, session_id=None):
 def governance_install(args, session_id=None):
     """Slash command: install governance into current project."""
     return {
-        "message": "Governance installation: Run `node .agent-governance/bin/evaluate.mjs --action install` or use the canonical URL installer."
+        "message": "Governance installation: Use the canonical URL installer:\n"
+        "  1. Provide repository URL: https://github.com/xxammaxx/OpenCode-Agenten-Oekosystem\n"
+        "  2. The AI will run a dry-run first, then require approval before applying.\n"
+        "  3. After installation, restart your session via the managed launcher."
     }
 
 
@@ -135,9 +178,65 @@ def governance_status(args, session_id=None):
         return {
             "message": "Governance: NOT_INSTALLED. Run /governance-install from the project root."
         }
-    return {
-        "message": f"Governance: INSTALLED at {gov_root}\nEnforcement Level: HOOK_ENFORCED (pre_tool_call active)\nRuntime: Hermes v0.18.2"
-    }
+
+    # Determine enforcement level from evidence
+    enforcement_level = "STRUCTURAL_HOOK_INSTALLED"
+
+    # Check for session attestation
+    attestation_dir = gov_root / ".agent-governance" / "evidence"
+    attestation_files = (
+        list(attestation_dir.glob("session-attestation-*.json"))
+        if attestation_dir.exists()
+        else []
+    )
+    has_attestation = len(attestation_files) > 0
+
+    # Check for allow/block test evidence
+    evidence_files = (
+        list(attestation_dir.glob("decision-*.json"))
+        if attestation_dir.exists()
+        else []
+    )
+    has_allow_evidence = False
+    has_block_evidence = False
+
+    for ef in evidence_files:
+        try:
+            data = json.loads(ef.read_text())
+            d = data.get("decision", "")
+            if d in ("GREEN", "ALLOW", "GREEN_SAFE"):
+                has_allow_evidence = True
+            if d in ("RED_BLOCK", "BLOCK", "DENY", "AMBER_REVIEW"):
+                has_block_evidence = True
+        except Exception:
+            pass
+
+    # Check for restart flag
+    restart_flag = gov_root / ".agent-governance" / "state" / "RESTART_REQUIRED"
+    if restart_flag.exists():
+        enforcement_level = "RESTART_REQUIRED"
+    elif has_attestation and has_allow_evidence and has_block_evidence:
+        enforcement_level = "MANAGED_HOOK_ENFORCED"
+
+    # Read installed version and runtime info
+    manifest = gov_root / ".agent-governance" / "manifest.json"
+    installed_version = "unknown"
+    if manifest.exists():
+        try:
+            manifest_data = json.loads(manifest.read_text())
+            installed_version = manifest_data.get("version", "unknown")
+        except Exception:
+            pass
+
+    lines = [
+        f"Governance: INSTALLED at {gov_root}",
+        f"Enforcement Level: {enforcement_level}",
+        f"Installed Version: {installed_version}",
+        f"Session Attestation: {'PRESENT' if has_attestation else 'MISSING'}",
+        f"Allow Evidence: {'PRESENT' if has_allow_evidence else 'MISSING'}",
+        f"Block Evidence: {'PRESENT' if has_block_evidence else 'MISSING'}",
+    ]
+    return {"message": "\n".join(lines)}
 
 
 def governance_doctor(args, session_id=None):

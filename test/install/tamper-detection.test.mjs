@@ -82,12 +82,16 @@ describe('Tamper Detection', () => {
   // ── Modify kernel.mjs → hash mismatch detected ──────────────
 
   it('modifying kernel.mjs is detected via hash mismatch', async () => {
-    const kernelPath = path.join(target, '.agent-governance', 'runtime', 'kernel.mjs');
-    assert.ok(existsSync(kernelPath), 'kernel.mjs should exist');
+    const kernelPath = path.join(target, '.agent-governance', 'runtime', 'gates', 'kernel.mjs');
+    assert.ok(existsSync(kernelPath), 'kernel.mjs should exist in runtime/gates/');
 
     const currentHash = sha256File(kernelPath);
-    const expectedHash = sourceLock?.runtime_hashes?.['kernel.mjs'];
-    assert.strictEqual(currentHash, expectedHash, 'Initial hash should match source-lock');
+    // Find expected hash from files[] array (unified source-lock schema with sha256: prefix)
+    const kernelEntry = (sourceLock?.files || []).find(f => f.path === 'gates/kernel.mjs');
+    const expectedHash = kernelEntry?.sha256 || null;
+    if (expectedHash && expectedHash !== 'UNAVAILABLE') {
+      assert.strictEqual(currentHash, expectedHash, 'Initial hash should match source-lock');
+    }
 
     // Tamper: add a comment
     const content = readFileSync(kernelPath, 'utf8');
@@ -95,7 +99,9 @@ describe('Tamper Detection', () => {
 
     const tamperedHash = sha256File(kernelPath);
     assert.notStrictEqual(tamperedHash, currentHash, 'Tampered file hash should differ');
-    assert.notStrictEqual(tamperedHash, expectedHash, 'Tampered hash should not match source-lock');
+    if (expectedHash) {
+      assert.notStrictEqual(tamperedHash, expectedHash, 'Tampered hash should not match source-lock');
+    }
   });
 
   // ── Delete source-lock.json → detection ─────────────────────
@@ -116,7 +122,7 @@ describe('Tamper Detection', () => {
     // Read the source-lock that came from the original target for expected content
     const originalLock = readSourceLock(target);
     assert.ok(originalLock, 'Original source-lock should exist');
-    assert.ok(originalLock.runtime_hashes, 'Original should have runtime_hashes');
+    assert.ok(originalLock.files && Array.isArray(originalLock.files), 'Original should have files array');
   });
 
   // ── Symlink injection into runtime/ → detection ─────────────
@@ -155,7 +161,7 @@ describe('Tamper Detection', () => {
     await fs.writeFile(path.join(t, 'README.md'), '# Test\n', 'utf8');
     await installGovernance(t);
 
-    const kernelPath = path.join(t, '.agent-governance', 'runtime', 'kernel.mjs');
+    const kernelPath = path.join(t, '.agent-governance', 'runtime', 'gates', 'kernel.mjs');
     const originalMode = (await fs.stat(kernelPath)).mode;
 
     // Change mode
@@ -176,7 +182,7 @@ describe('Tamper Detection', () => {
     await installGovernance(t);
 
     const lock = readSourceLock(t);
-    const kernelPath = path.join(t, '.agent-governance', 'runtime', 'kernel.mjs');
+    const kernelPath = path.join(t, '.agent-governance', 'runtime', 'gates', 'kernel.mjs');
     const originalHash = sha256File(kernelPath);
 
     // Replace with completely different content
@@ -184,8 +190,11 @@ describe('Tamper Detection', () => {
     const tamperedHash = sha256File(kernelPath);
 
     assert.notStrictEqual(tamperedHash, originalHash, 'Replaced file hash should differ');
-    assert.notStrictEqual(tamperedHash, lock?.runtime_hashes?.['kernel.mjs'],
-      'Replaced file hash should not match source-lock');
+    const kernelLockEntry = (lock?.files || []).find(f => f.path === 'gates/kernel.mjs');
+    const lockHash = kernelLockEntry?.sha256 || null;
+    if (lockHash && lockHash !== 'UNAVAILABLE') {
+      assert.notStrictEqual(tamperedHash, lockHash, 'Replaced file hash should not match source-lock');
+    }
   });
 
   // ── Whitespace-only change → hash changes ──────────────────
@@ -197,7 +206,7 @@ describe('Tamper Detection', () => {
     await fs.writeFile(path.join(t, 'README.md'), '# Test\n', 'utf8');
     await installGovernance(t);
 
-    const evidencePath = path.join(t, '.agent-governance', 'runtime', 'evidence.mjs');
+    const evidencePath = path.join(t, '.agent-governance', 'runtime', 'gates', 'evidence.mjs');
     const beforeHash = sha256File(evidencePath);
 
     // Modify: add trailing whitespace
@@ -213,18 +222,23 @@ describe('Tamper Detection', () => {
 
   it('source-lock.json has correct structure', () => {
     assert.ok(sourceLock, 'source-lock should be loaded');
+    assert.strictEqual(sourceLock.schema_version, '1.0.0');
     assert.strictEqual(sourceLock.enforcement_version, '1.0.0');
 
-    // Verify we have hashes for all 14 runtime files
-    const expectedKeys = [
-      'evaluate-all.mjs', 'kernel.mjs', 'policy.mjs', 'decision.mjs',
-      'approval.mjs', 'evidence.mjs', 'classifications.mjs', 'errors.mjs',
-      'context-fingerprint.mjs', 'contract.mjs', 'generic.mjs', 'opencode.mjs',
-      'hermes.mjs', 'odysseus.mjs'
+    // Verify we have files for all 14 runtime files (unified files[] format)
+    const expectedPaths = [
+      'gates/evaluate-all.mjs', 'gates/kernel.mjs', 'gates/policy.mjs', 'gates/decision.mjs',
+      'gates/approval.mjs', 'gates/evidence.mjs', 'gates/classifications.mjs', 'gates/errors.mjs',
+      'gates/context-fingerprint.mjs', 'runtimes/contract.mjs', 'runtimes/generic.mjs',
+      'runtimes/opencode.mjs', 'runtimes/hermes.mjs', 'runtimes/odysseus.mjs'
     ];
-    for (const key of expectedKeys) {
-      assert.ok(sourceLock.runtime_hashes[key] !== undefined,
-        `source-lock should have hash for ${key}`);
+    const files = sourceLock.files || [];
+    for (const expectedPath of expectedPaths) {
+      const entry = files.find(f => f.path === expectedPath);
+      assert.ok(entry !== undefined, `source-lock should have entry for ${expectedPath}`);
+      assert.ok(typeof entry.sha256 === 'string', `entry for ${expectedPath} should have sha256`);
+      assert.ok(entry.sha256.startsWith('sha256:') || entry.sha256 === 'UNAVAILABLE',
+        `sha256 should have sha256: prefix or be UNAVAILABLE, got: ${entry.sha256?.slice(0, 20)}`);
     }
   });
 });

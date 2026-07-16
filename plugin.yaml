@@ -1,4 +1,3 @@
-manifest_version: 1
 name: canonical-agent-governance
 version: "1.0.0"
 description: "Install and enforce the canonical working method with runtime gate evaluation in the active project."
