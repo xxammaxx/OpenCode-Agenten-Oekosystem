@@ -14,6 +14,10 @@
 node_modules/
 *.tsbuildinfo
 
+# Python
+__pycache__/
+*.pyc
+
 # Logs
 *.log
 .opencode/logs/**/*.jsonl
@@ -21,6 +25,13 @@ node_modules/
 # Reports (generated, not source)
 .opencode/reports/**/*.json
 .opencode/reports/**/*.png
+
+# Runtime-local approval receipts and nonce ledger (never versionable)
+.opencode/approvals/
+
+# Local unsanitized compliance output (do not version)
+.opencode/reports/compliance/local/
+.opencode/reports/compliance/generated/
 
 # OS
 .DS_Store

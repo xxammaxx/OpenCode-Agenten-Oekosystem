@@ -2,8 +2,8 @@
 /**
  * evaluate-gates.mjs — Runtime-Neutral Gate Evaluation CLI
  *
- * Evaluates kernel gates, policy gates, and project gates
- * against a target project with the specified runtime adapter.
+ * Thin CLI wrapper around the canonical evaluateAllGates() entry point.
+ * All gate evaluation logic lives in scripts/lib/gates/evaluate-all.mjs.
  *
  * Usage:
  *   node scripts/evaluate-gates.mjs --target /path/to/project --runtime auto --action apply
@@ -18,23 +18,7 @@
 
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { evaluateKernelGates, detectKernelGateOverrides } from './lib/gates/kernel.mjs';
-import { createGateDecision, CLASSIFICATIONS, VERIFICATION_LEVELS, classificationToExitCode } from './lib/gates/decision.mjs';
-import { normalizeRuntime, validateAdapterAgainstKernel, getConfidenceLevel, KNOWN_RUNTIMES } from './lib/runtimes/contract.mjs';
-import { VALID_ACTIONS } from './lib/gates/approval.mjs';
-import * as genericAdapter from './lib/runtimes/generic.mjs';
-import * as opencodeAdapter from './lib/runtimes/opencode.mjs';
-import * as hermesAdapter from './lib/runtimes/hermes.mjs';
-import * as odysseusAdapter from './lib/runtimes/odysseus.mjs';
-
-// ── Adapter Registry ──────────────────────────────────────────────
-
-const ADAPTERS = {
-  generic: genericAdapter,
-  opencode: opencodeAdapter,
-  hermes: hermesAdapter,
-  odysseus: odysseusAdapter
-};
+import { evaluateAllGates, CLASSIFICATIONS, VERIFICATION_LEVELS, classificationToExitCode, VALID_ACTIONS, KNOWN_RUNTIMES } from './lib/gates/evaluate-all.mjs';
 
 // ── CLI Argument Parsing ──────────────────────────────────────────
 
@@ -49,6 +33,9 @@ function parseArgs(args) {
     approvalFile: null,
     evidenceFile: null,
     projectPolicy: null,
+    command: null,
+    writePaths: [],
+    agentRole: null,
     help: false
   };
 
@@ -84,6 +71,15 @@ function parseArgs(args) {
       case '--project-policy':
         parsed.projectPolicy = args[++i];
         break;
+      case '--command':
+        parsed.command = args[++i];
+        break;
+      case '--write-path':
+        parsed.writePaths.push(args[++i]);
+        break;
+      case '--agent-role':
+        parsed.agentRole = args[++i];
+        break;
       case '--help':
       case '-h':
         parsed.help = true;
@@ -111,49 +107,170 @@ Options:
   --approval-file <f>  Path to approval receipt JSON
   --evidence-file <f>  Path to evidence collection JSON
   --project-policy <f> Path to project-level gate policy JSON
+  --command <cmd>      The command being evaluated (for kernel checks)
+  --write-path <p>     Path being written to (repeatable)
+  --agent-role <role>  Agent role for comment policy
   --help, -h           Show this help
 
 Exit Codes:
   0  GREEN_SAFE — all gates passed
   1  AMBER_REVIEW or TOOL_GAP — review required
   2  RED_BLOCK — kernel gate violation`);
+
+  console.log(`\nValid Actions: ${[...new Set([...VALID_ACTIONS, 'evaluate', 'review', 'validate', 'check', 'scan'])].sort().join(', ')}`);
+  console.log(`Known Runtimes: ${KNOWN_RUNTIMES.join(', ')}`);
 }
 
-// ── Auto-Detect Runtime ────────────────────────────────────────────
+// ── Output Helpers ────────────────────────────────────────────────
 
-function autoDetectRuntimes(targetRoot) {
-  const results = [];
-  for (const [name, adapter] of Object.entries(ADAPTERS)) {
-    if (name === 'generic') continue; // skip generic — it's the fallback
-    const detection = adapter.detect({ targetRoot });
-    results.push({ name, ...detection });
-  }
+function printHumanReadable(decision) {
+  const {
+    classification, runtime, verificationLevel, allowed, action,
+    riskTier, blockedBy, requiredApprovals, consumedApprovals,
+    warnings, toolGaps, exitCode, adapterSelection, handoff,
+    approvalIssues, evidenceValidation
+  } = decision;
 
-  // Sort by confidence descending
-  results.sort((a, b) => b.confidence - a.confidence);
+  console.log(`\n═══ Gate Evaluation ═══`);
+  console.log(`Target:   ${decision.targetRoot}`);
+  console.log(`Runtime:  ${adapterSelection.detectedAs} (confidence: ${adapterSelection.confidence}%)`);
+  console.log(`Action:   ${action}`);
+  console.log(`Tier:     ${riskTier}`);
+  console.log(`Mode:     ${decision.metadata?.dryRun !== false ? 'DRY-RUN' : 'APPLY'}`);
+  console.log('');
 
-  return results;
-}
-
-function selectAdapter(runtime, targetRoot) {
-  if (runtime === 'auto') {
-    const detections = autoDetectRuntimes(targetRoot);
-    for (const d of detections) {
-      if (d.confidence >= 50) {
-        return { adapter: ADAPTERS[d.name] || genericAdapter, detectedAs: d.name, confidence: d.confidence, allDetections: detections };
-      }
+  // Runtime detections
+  if (adapterSelection.allDetections && adapterSelection.allDetections.length > 0) {
+    console.log('Runtime Detections:');
+    for (const d of adapterSelection.allDetections) {
+      const icon = d.confidence >= 80 ? '✓' : d.confidence >= 50 ? '~' : '✗';
+      console.log(`  ${icon} ${d.name}: ${d.confidence}%`);
     }
-    // Fallback to generic
-    return { adapter: genericAdapter, detectedAs: 'generic', confidence: 0, allDetections: detections };
+    console.log('');
   }
 
-  const normalized = normalizeRuntime(runtime);
-  const adapter = ADAPTERS[normalized];
-  if (!adapter) {
-    console.error(`Unknown runtime: "${runtime}". Valid: auto, ${KNOWN_RUNTIMES.join(', ')}`);
-    process.exit(2);
+  // Kernel override detection
+  if (decision.metadata?.kernelOverrideDetected) {
+    console.log('⚠️  Adapter Kernel Override Detected:');
+    for (const override of (decision.metadata.kernelOverrides || [])) {
+      console.log(`    ❌ ${override.type || 'UNKNOWN'}: ${override.message || 'adapter override detected'}`);
+    }
   }
-  return { adapter, detectedAs: normalized, confidence: 100, allDetections: [] };
+
+  // Kernel Gates
+  console.log(`Kernel Gates:          ${decision.metadata?.kernelResult?.passedGateCount || '?'}/${decision.metadata?.kernelResult?.kernelGateCount || '?'} passed`);
+  if (blockedBy.some(b => b.layer === 'kernel')) {
+    console.log('  BLOCKED by kernel gate(s):');
+    for (const b of blockedBy.filter(b => b.layer === 'kernel')) {
+      console.log(`    ❌ ${b.gateId || b.code}: ${b.message}`);
+    }
+  } else {
+    console.log('  ✅ All kernel gates passed.');
+  }
+
+  // Policy Gates
+  if (blockedBy.some(b => b.layer === 'policy')) {
+    console.log(`\nPolicy Gates: BLOCKED`);
+    for (const b of blockedBy.filter(b => b.layer === 'policy')) {
+      console.log(`    ❌ ${b.code}: ${b.message}`);
+    }
+  }
+
+  // Project Gates
+  if (blockedBy.some(b => b.layer === 'project')) {
+    console.log(`\nProject Gates: BLOCKED`);
+    for (const b of blockedBy.filter(b => b.layer === 'project')) {
+      console.log(`    ❌ ${b.code}: ${b.message}`);
+    }
+  }
+
+  // Runtime Adapter
+  console.log(`\nRuntime Adapter (${adapterSelection.detectedAs}):`);
+  console.log(`  Classification:       ${classification}`);
+  console.log(`  Verification:         ${verificationLevel}`);
+
+  if (warnings && warnings.length > 0) {
+    console.log(`  Warnings:             ${warnings.length}`);
+    for (const w of warnings.slice(0, 5)) {
+      console.log(`    ⚠️  ${w}`);
+    }
+  }
+
+  const adapterBlocks = blockedBy.filter(b => b.layer !== 'kernel' && b.layer !== 'policy' && b.layer !== 'project');
+  if (adapterBlocks.length > 0) {
+    console.log(`  Blocked By:`);
+    for (const b of adapterBlocks) {
+      console.log(`    ❌ [${b.layer}] ${b.message}`);
+    }
+  }
+
+  // Handoff (for Odysseus/generic)
+  if (handoff) {
+    console.log(`\nHandoff (${adapterSelection.detectedAs}):`);
+    if (handoff.canGenerate) {
+      console.log(`  Type:                 ${handoff.handoffType || 'N/A'}`);
+      console.log(`  Native Integration:   ${handoff.nativeIntegration !== undefined ? handoff.nativeIntegration : 'N/A'}`);
+      if (handoff.artifacts) {
+        console.log(`  Artifacts:            ${handoff.artifacts.length}`);
+        for (const a of handoff.artifacts.slice(0, 5)) {
+          console.log(`    📄 ${a.path} (${a.type})`);
+        }
+      }
+      if (handoff.notes) {
+        for (const n of handoff.notes) {
+          console.log(`    ℹ️  ${n}`);
+        }
+      }
+    } else {
+      console.log(`  Status:               Cannot generate handoff`);
+    }
+  }
+
+  // Approvals
+  if (requiredApprovals.length > 0) {
+    console.log(`\nRequired Approvals:    ${requiredApprovals.length}`);
+    for (const ra of requiredApprovals) {
+      console.log(`    🔒 ${ra.type}${ra.gate ? ` (gate: ${ra.gate})` : ''}`);
+    }
+  }
+  if (consumedApprovals && consumedApprovals.length > 0) {
+    console.log(`Consumed Approvals:    ${consumedApprovals.length}`);
+    for (const ca of consumedApprovals) {
+      console.log(`    ✓ ${ca.action} (nonce: ${ca.nonce?.substring(0, 8)}...)`);
+    }
+  }
+  if (approvalIssues && approvalIssues.length > 0) {
+    console.log(`Approval Issues:       ${approvalIssues.length}`);
+    for (const ai of approvalIssues.slice(0, 5)) {
+      const issueDesc = ai.issues?.map(i => i.issue || i.message).join(', ') || 'unknown';
+      console.log(`    ❌ nonce=${ai.nonce?.substring(0, 8)}...: ${issueDesc}`);
+    }
+  }
+
+  // Evidence
+  if (evidenceValidation && !evidenceValidation.valid) {
+    console.log(`\nEvidence:             INCOMPLETE`);
+    console.log(`    Missing: ${(evidenceValidation.missing || []).join(', ')}`);
+  }
+
+  // Tool Gaps
+  if (toolGaps.length > 0) {
+    console.log(`\nTool Gaps:             ${toolGaps.length}`);
+    for (const tg of toolGaps) {
+      console.log(`    🔧 ${tg}`);
+    }
+  }
+
+  // Final Decision
+  console.log(`\n═══ Decision ═══`);
+  const icon = classification === CLASSIFICATIONS.GREEN_SAFE ? '✅' :
+               classification === CLASSIFICATIONS.AMBER_REVIEW ? '⚠️' :
+               classification === CLASSIFICATIONS.TOOL_GAP ? '🔧' : '🚫';
+  console.log(`  ${icon} Classification:   ${classification}`);
+  console.log(`  Allowed:              ${allowed}`);
+  console.log(`  Verification:         ${verificationLevel}`);
+  console.log(`  Exit Code:            ${exitCode}`);
+  console.log('');
 }
 
 // ── Main ───────────────────────────────────────────────────────────
@@ -172,7 +289,7 @@ async function main() {
     process.exit(2);
   }
 
-  // Validate action against known valid actions
+  // Validate action
   const VALID_CLI_ACTIONS = new Set([
     ...VALID_ACTIONS, 'evaluate', 'review', 'validate', 'check', 'scan'
   ]);
@@ -181,219 +298,26 @@ async function main() {
     process.exit(2);
   }
 
-  // Select adapter
-  const { adapter, detectedAs, confidence } = selectAdapter(args.runtime, targetRoot);
-
-  if (!args.json) {
-    console.log(`\n═══ Gate Evaluation ═══`);
-    console.log(`Target:  ${targetRoot}`);
-    console.log(`Runtime: ${detectedAs} (confidence: ${confidence}%)`);
-    console.log(`Action:  ${args.action}`);
-    console.log(`Tier:    ${args.riskTier}`);
-    console.log(`Mode:    ${args.dryRun ? 'DRY-RUN' : 'APPLY'}`);
-    console.log('');
-  }
-
-  // Phase 1: Kernel Gates (always evaluated first, never skipped)
-  const kernelCtx = {
+  // Delegate to canonical evaluator
+  const decision = await evaluateAllGates({
     targetRoot,
-    command: args.action,
-    action: args.action
-  };
-  const kernelResult = evaluateKernelGates(kernelCtx);
-
-  // Detect kernel gate overrides in adapter
-  const adapterOverrideCheck = detectKernelGateOverrides({
-    runtimeGates: adapterResult ? adapterResult.blockedBy || [] : [],
-    kernelViolations: kernelResult.violations || [],
-    adapterClassification: adapterResult?.classification || CLASSIFICATIONS.GREEN_SAFE,
-    kernelClassification: kernelResult.classification || CLASSIFICATIONS.GREEN_SAFE
-  });
-
-  if (!adapterOverrideCheck.clean && !args.json) {
-    console.log(`\n⚠️  Adapter Kernel Override Detected:`);
-    for (const override of adapterOverrideCheck.overrides || []) {
-      console.log(`    ❌ ${override.type || 'UNKNOWN'}: ${override.message || 'adapter override detected'}`);
-    }
-  }
-
-  if (!args.json) {
-    console.log(`Kernel Gates: ${kernelResult.passedGateCount}/${kernelResult.kernelGateCount} passed`);
-    if (kernelResult.violations.length > 0) {
-      console.log(`  BLOCKED by ${kernelResult.violations.length} gate(s):`);
-      for (const v of kernelResult.violations) {
-        console.log(`    ❌ ${v.code || v.gateId}: ${v.message}`);
-      }
-    } else {
-      console.log(`  ✅ All kernel gates passed.`);
-    }
-  }
-
-  // Phase 2: Runtime Adapter Evaluation
-  let adapterResult = null;
-  try {
-    const validation = adapter.validate({ targetRoot, runtime: detectedAs, action: args.action });
-    const gates = adapter.evaluateRuntimeGates({ targetRoot, runtime: detectedAs, action: args.action });
-    const caps = adapter.capabilities({ targetRoot, runtime: detectedAs });
-
-    adapterResult = {
-      ...validation,
-      blockedBy: gates.blockedBy || [],
-      warnings: gates.warnings || [],
-      capabilities: (caps && caps.capabilities) || {},
-      requiredApprovals: gates.requiredApprovals || [],
-      verificationLevel: validation.verificationLevel || VERIFICATION_LEVELS.NOT_CHECKED,
-      classification: validation.classification || CLASSIFICATIONS.GREEN_SAFE,
-      toolGaps: validation.toolGaps || [],
-      liveVerificationPerformed: false
-    };
-
-    // Validate adapter against kernel (detect adapter overrides)
-    const kernelCheck = validateAdapterAgainstKernel(adapterResult, []);
-    if (!kernelCheck.clean) {
-      for (const violation of kernelCheck.violations) {
-        if (!args.json) {
-          console.log(`\n⚠️  Adapter Kernel Violation: ${violation.message}`);
-        }
-      }
-    }
-
-    if (!args.json) {
-      console.log(`\nRuntime Adapter (${detectedAs}):`);
-      console.log(`  Classification:    ${adapterResult.classification}`);
-      console.log(`  Verification:      ${adapterResult.verificationLevel}`);
-      if (adapterResult.warnings && adapterResult.warnings.length > 0) {
-        console.log(`  Warnings:          ${adapterResult.warnings.length}`);
-        for (const w of adapterResult.warnings) {
-          console.log(`    ⚠️  ${w}`);
-        }
-      }
-      if (adapterResult.blockedBy && adapterResult.blockedBy.length > 0) {
-        console.log(`  Blocked By:`);
-        for (const b of adapterResult.blockedBy) {
-          console.log(`    ❌ [${b.layer}] ${b.message}`);
-        }
-      }
-    }
-  } catch (e) {
-    if (!args.json) {
-      console.log(`\n⚠️  Adapter evaluation failed: ${e.message}`);
-    }
-    adapterResult = {
-      classification: CLASSIFICATIONS.AMBER_REVIEW,
-      verificationLevel: VERIFICATION_LEVELS.TOOL_GAP,
-      toolGaps: ['ADAPTER_EVALUATION_FAILED'],
-      warnings: [e.message],
-      capabilities: {}
-    };
-  }
-
-  // Phase 3: Handoff Check (for Odysseus and unknown runtimes)
-  let handoffResult = null;
-  if (detectedAs === 'odysseus' || detectedAs === 'generic') {
-    handoffResult = adapter.generateHandoff({ targetRoot, runtime: detectedAs });
-    if (!args.json && handoffResult.canGenerate) {
-      console.log(`\nHandoff (${detectedAs}):`);
-      console.log(`  Type:              ${handoffResult.handoffType || 'N/A'}`);
-      console.log(`  Native Integration: ${handoffResult.nativeIntegration !== undefined ? handoffResult.nativeIntegration : 'N/A'}`);
-      if (handoffResult.artifacts) {
-        console.log(`  Artifacts:         ${handoffResult.artifacts.length}`);
-        for (const a of handoffResult.artifacts) {
-          console.log(`    📄 ${a.path} (${a.type})`);
-        }
-      }
-      if (handoffResult.notes) {
-        for (const n of handoffResult.notes) {
-          console.log(`    ℹ️  ${n}`);
-        }
-      }
-    }
-  }
-
-  // Phase 4: Load approvals if provided
-  let approvals = [];
-  if (args.approvalFile) {
-    try {
-      const { readFileSync } = await import('node:fs');
-      const content = readFileSync(resolve(args.approvalFile), 'utf-8');
-      const approvalData = JSON.parse(content);
-      if (Array.isArray(approvalData)) {
-        approvals = approvalData;
-      } else {
-        approvals = [approvalData];
-      }
-    } catch (e) {
-      if (!args.json) {
-        console.log(`\n⚠️  Could not load approval file: ${e.message}`);
-      }
-    }
-  }
-
-  // Phase 5: Create final decision
-  const decision = createGateDecision({
-    runtime: detectedAs,
+    runtime: args.runtime,
     action: args.action,
     riskTier: args.riskTier,
-    kernelResult: {
-      allowed: kernelResult.allowed,
-      violations: kernelResult.violations,
-      classification: kernelResult.classification
-    },
-    policyResults: [],
-    projectResults: [],
-    adapterResult: {
-      classification: adapterResult.classification,
-      verificationLevel: adapterResult.verificationLevel,
-      capabilities: adapterResult.capabilities,
-      toolGaps: adapterResult.toolGaps,
-      warnings: adapterResult.warnings,
-      blockedBy: adapterResult.blockedBy,
-      requiredApprovals: adapterResult.requiredApprovals || []
-    },
-    approvals,
-    targetRoot,
-    metadata: {
-      confidence,
-      dryRun: args.dryRun,
-      handoff: handoffResult
-    }
+    dryRun: args.dryRun,
+    approvalFile: args.approvalFile,
+    evidenceFile: args.evidenceFile,
+    projectPolicyFile: args.projectPolicy,
+    command: args.command,
+    writePaths: args.writePaths,
+    agentRole: args.agentRole
   });
 
   // Output
   if (args.json) {
     console.log(JSON.stringify(decision, null, 2));
   } else {
-    console.log(`\n═══ Decision ═══`);
-    const icon = decision.classification === CLASSIFICATIONS.GREEN_SAFE ? '✅' :
-                 decision.classification === CLASSIFICATIONS.AMBER_REVIEW ? '⚠️' :
-                 decision.classification === CLASSIFICATIONS.TOOL_GAP ? '🔧' : '🚫';
-    console.log(`  ${icon} Classification:  ${decision.classification}`);
-    console.log(`  Allowed:            ${decision.allowed}`);
-    console.log(`  Verification:       ${decision.verificationLevel}`);
-    console.log(`  Exit Code:          ${decision.exitCode}`);
-
-    if (decision.warnings.length > 0) {
-      console.log(`  Warnings:           ${decision.warnings.length}`);
-    }
-    if (decision.blockedBy.length > 0) {
-      console.log(`\n  Blocked by ${decision.blockedBy.length} item(s):`);
-      for (const b of decision.blockedBy) {
-        console.log(`    [${b.layer}] ${b.message}`);
-      }
-    }
-    if (decision.requiredApprovals.length > 0) {
-      console.log(`\n  Required Approvals: ${decision.requiredApprovals.length}`);
-      for (const ra of decision.requiredApprovals) {
-        console.log(`    🔒 ${ra.type} (gate: ${ra.gate})`);
-      }
-    }
-    if (decision.toolGaps.length > 0) {
-      console.log(`\n  Tool Gaps: ${decision.toolGaps.length}`);
-      for (const tg of decision.toolGaps) {
-        console.log(`    🔧 ${tg}`);
-      }
-    }
-    console.log('');
+    printHumanReadable(decision);
   }
 
   process.exit(decision.exitCode);

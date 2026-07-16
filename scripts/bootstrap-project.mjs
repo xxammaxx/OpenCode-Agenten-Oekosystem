@@ -12,6 +12,7 @@ import { ensureDirectory, ensureParentDirectory, pathExists, readTextIfExists, t
 import { renderDiscoveryMarkdown, renderPlanMarkdown, renderRunReportMarkdown, writeJsonReport, writeMarkdownReport } from "./lib/report.mjs"
 import { selectMcpCandidates } from "./lib/mcp.mjs"
 import { mergeDeep, mergeManagedSections } from "./lib/merge.mjs"
+import { evaluateAllGates, CLASSIFICATIONS } from "./lib/gates/evaluate-all.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -57,15 +58,46 @@ async function main() {
   const selected = selectManifestRecommendations(manifest, discovery, { includeRemoteCI: args.includeRemoteCI })
   const mcpSelection = selectMcpCandidates(discovery, { includeRemoteCI: args.includeRemoteCI })
   const overlay = await buildOverlay({ manifest, discovery, selected, mcpSelection, sourceRoot: repoRoot, targetRoot })
-  const classification = classify(discovery, selected, mcpSelection, overlay)
-  const plan = buildPlan({ discovery, selected, mcpSelection, overlay, classification, applyRequested: false })
+  const discoveryFindings = computeDiscoveryFindings(discovery, selected, mcpSelection, overlay)
+
+  const writePaths = overlay.files.map((f) => f.destination)
+  const gateDecision = await evaluateAllGates({
+    targetRoot,
+    runtime: "auto",
+    action: args.apply ? "apply" : "evaluate",
+    writePaths,
+    enforcementContext: {
+      hasBackup: false,
+      hasValidatedManifest: true,
+      environment: "development",
+    },
+    riskTier: "LOW_LOCAL",
+    dryRun: !args.apply,
+    worktreeRoot: targetRoot,
+  })
+
+  const classification = gateDecision.classification
+
+  const plan = buildPlan({
+    discovery, selected, mcpSelection, overlay, classification,
+    applyRequested: false,
+    gateDecision,
+    discoveryFindings,
+  })
 
   if (!args.apply) {
     console.log(renderDiscoveryMarkdown(discoveryForReport(discovery, selected, mcpSelection, null)))
     console.log("")
     console.log(renderPlanMarkdown(plan))
     console.log(classification)
-    process.exitCode = classification === "GREEN_SAFE" ? 0 : classification === "AMBER_REVIEW" ? 1 : 2
+    process.exitCode = classification === "GREEN_SAFE" ? 0 : classification === "AMBER_REVIEW" || classification === "TOOL_GAP" ? 1 : 2
+    return
+  }
+
+  if (discoveryFindings.has_blockers) {
+    console.error("RED_BLOCK: Discovery findings indicate blocking conditions.")
+    discoveryFindings.notes.forEach((n) => console.log(`  - ${n}`))
+    process.exitCode = 2
     return
   }
 
@@ -78,12 +110,56 @@ async function main() {
     path.join(targetRoot, "docs", "reports", "universal-bootstrap-run-report.md"),
   ]
   const backup = await createBackup({ targetRoot, files: filesToBackup })
+
+  const applyGateDecision = await evaluateAllGates({
+    targetRoot,
+    runtime: "auto",
+    action: "apply",
+    writePaths,
+    enforcementContext: {
+      hasBackup: true,
+      hasValidatedManifest: true,
+      environment: "development",
+    },
+    riskTier: "LOW_LOCAL",
+    dryRun: false,
+    worktreeRoot: targetRoot,
+  })
+
+  if (applyGateDecision.classification === CLASSIFICATIONS.RED_BLOCK) {
+    console.error("RED_BLOCK: Canonical gate evaluation blocked the apply operation.")
+    for (const block of applyGateDecision.blockedBy) {
+      console.error(`  - [${block.layer}] ${block.message}`)
+    }
+    process.exitCode = 2
+    return
+  }
+
+  if (applyGateDecision.classification === CLASSIFICATIONS.TOOL_GAP) {
+    console.warn("TOOL_GAP: Missing enforcement detected.")
+    for (const gap of applyGateDecision.toolGaps) {
+      console.warn(`  - ${gap}`)
+    }
+  }
+
+  if (applyGateDecision.classification === CLASSIFICATIONS.AMBER_REVIEW) {
+    console.warn("AMBER_REVIEW: Proceeding with apply as explicitly requested.")
+    for (const warning of applyGateDecision.warnings) {
+      console.warn(`  - ${warning}`)
+    }
+  }
+
   await applyOverlay(overlay)
 
   const reportsDir = path.join(targetRoot, ".opencode", "reports", "bootstrap")
   await ensureDirectory(reportsDir)
   const reportDiscovery = discoveryForReport(discovery, selected, mcpSelection, backup.backupDir)
-  const reportPlan = buildPlan({ discovery, selected, mcpSelection, overlay, classification, backupRoot: backup.backupDir, applyRequested: true })
+  const reportPlan = buildPlan({
+    discovery, selected, mcpSelection, overlay, classification: applyGateDecision.classification,
+    backupRoot: backup.backupDir, applyRequested: true,
+    gateDecision: applyGateDecision,
+    discoveryFindings,
+  })
   const changedFiles = overlay.files.map((file) => relativePath(targetRoot, file.destination))
 
   await writeJsonReport(path.join(reportsDir, "discovery.json"), reportDiscovery)
@@ -93,25 +169,35 @@ async function main() {
 
   const validation = await validateRepoState(targetRoot)
   const runReport = {
-    classification: validation.classification,
+    classification: applyGateDecision.classification,
     target_root: targetRoot,
     timestamp: new Date().toISOString(),
-    summary: "Bootstrap applied with conservative merge rules and backup protection.",
+    summary: "Bootstrap applied with conservative merge rules, backup protection, and canonical gate evaluation.",
     changed_files: changedFiles,
     evidence: [
       `Backup root: ${backup.backupDir}`,
       `Discovery report: ${path.join(reportsDir, "discovery.md")}`,
       `Plan report: ${path.join(reportsDir, "plan.md")}`,
       `Validation: ${validation.classification}`,
+      `Gate classification: ${applyGateDecision.classification}`,
     ],
     uncertainties: validation.uncertainties,
+    gate_evaluation: {
+      classification: applyGateDecision.classification,
+      verification_level: applyGateDecision.verificationLevel,
+      kernel_blocked_by: applyGateDecision.blockedBy.filter((b) => b.layer === "kernel").map((b) => ({ code: b.code, message: b.message })),
+      runtime_adapter: applyGateDecision.adapterSelection || { detectedAs: "generic", confidence: 0 },
+      required_approvals: applyGateDecision.requiredApprovals.map((a) => a.type),
+      tool_gaps: applyGateDecision.toolGaps,
+      discovery_findings: discoveryFindings.notes,
+    },
   }
 
   await writeMarkdownReport(path.join(targetRoot, "docs", "reports", "universal-bootstrap-run-report.md"), renderRunReportMarkdown(runReport))
 
   console.log(renderPlanMarkdown(reportPlan))
-  console.log(validation.classification)
-  process.exitCode = validation.classification === "GREEN_SAFE" ? 0 : validation.classification === "AMBER_REVIEW" ? 1 : 2
+  console.log(applyGateDecision.classification)
+  process.exitCode = applyGateDecision.classification === "GREEN_SAFE" ? 0 : applyGateDecision.classification === "AMBER_REVIEW" || applyGateDecision.classification === "TOOL_GAP" ? 1 : 2
 }
 
 function parseArgs(argv) {
@@ -147,20 +233,28 @@ function printHelp() {
 `)
 }
 
-function classify(discovery, selected, mcpSelection, overlay) {
+function computeDiscoveryFindings(discovery, selected, mcpSelection, overlay) {
   const signals = discovery.signals.map((signal) => signal.id)
-  if (overlay.conflicts.length > 0) return "AMBER_REVIEW"
-  if (signals.includes("tierheim-signals") && !selected.skills.includes("tierheim-compliance")) return "RED_BLOCK"
-  if (mcpSelection.remote_ci_requested) return "AMBER_REVIEW"
-  return "GREEN_SAFE"
+  const tierheimMissing = signals.includes("tierheim-signals") && !selected.skills.includes("tierheim-compliance")
+  return {
+    overlay_conflict_count: overlay.conflicts.length,
+    tierheim_missing_compliance: tierheimMissing,
+    remote_ci_requested: mcpSelection.remote_ci_requested,
+    has_blockers: tierheimMissing,
+    notes: [
+      overlay.conflicts.length > 0 ? `${overlay.conflicts.length} overlay conflict(s) detected` : null,
+      tierheimMissing ? "tierheim signals present but tierheim-compliance skill not selected" : null,
+      mcpSelection.remote_ci_requested ? "remote CI workflows requested" : null,
+    ].filter(Boolean),
+  }
 }
 
-function buildPlan({ discovery, selected, mcpSelection, overlay, classification, backupRoot, applyRequested = false }) {
+function buildPlan({ discovery, selected, mcpSelection, overlay, classification, backupRoot, applyRequested = false, gateDecision, discoveryFindings }) {
   const rollbackCommand = backupRoot
     ? `node scripts/bootstrap-project.mjs --target ${JSON.stringify(discovery.target_root)} --rollback ${JSON.stringify(backupRoot)}`
     : "Run apply mode first to create a backup."
 
-  return {
+  const plan = {
     target_root: discovery.target_root,
     classification,
     apply_requested: applyRequested,
@@ -175,6 +269,25 @@ function buildPlan({ discovery, selected, mcpSelection, overlay, classification,
     backup_root: backupRoot || null,
     rollback_command: rollbackCommand,
   }
+
+  if (discoveryFindings) {
+    plan.discovery_findings = discoveryFindings.notes
+  }
+
+  if (gateDecision) {
+    plan.gate_evaluation = {
+      classification: gateDecision.classification,
+      verification_level: gateDecision.verificationLevel,
+      kernel_blocked_by: (gateDecision.blockedBy || [])
+        .filter((b) => b.layer === "kernel")
+        .map((b) => ({ code: b.code, message: b.message })),
+      required_approvals: (gateDecision.requiredApprovals || []).map((a) => a.type),
+      tool_gaps: gateDecision.toolGaps || [],
+      warnings: gateDecision.warnings || [],
+    }
+  }
+
+  return plan
 }
 
 function discoveryForReport(discovery, selected, mcpSelection, backupRoot) {
