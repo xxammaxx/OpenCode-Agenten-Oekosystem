@@ -8,7 +8,7 @@
 - **Node.js**: v22.22.0
 - **Python**: 3.12.3
 - **Git**: 2.43.0
-- **OpenCode**: 1.15.13 (/home/xxammaxx/.opencode/bin/opencode)
+- **OpenCode**: 1.15.13 ($HOME/.opencode/bin/opencode)
 - **Hermes**: 0.18.2 (CT 108, 192.168.1.210:9119)
 - **Odysseus**: No runtime found
 - **Target**: GREEN_SAFE_RUNTIME_ENFORCEMENT or AMBER_REVIEW_ODYSSEUS_INFRA_APPROVAL
