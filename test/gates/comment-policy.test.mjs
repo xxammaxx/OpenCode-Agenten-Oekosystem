@@ -237,15 +237,34 @@ describe('Comment Policy Gates', () => {
   // ── Comment Cycle Completeness ─────────────────────────────
 
   it('warns when issue is fetched but no comment cycle started', () => {
+    // COMMENT_CYCLE_INCOMPLETE warns when an end/gate comment is posted
+    // without a preceding start comment — but only for actual comment operations.
     const result = evaluateCommentPolicy({
-      agentRole: 'unknown',
+      agentRole: 'issue-orchestrator',
+      commentType: 'end',
+      commentData: {
+        context: 'test', changes: 'test', files_changed: [],
+        tests_run: 'passed', result: 'success', blockers: []
+      },
+      issueFetched: 'yes'
+    });
+
+    const cycleWarning = result.warnings.find(w => w.code === 'COMMENT_CYCLE_INCOMPLETE');
+    assert.ok(cycleWarning, 'Expected COMMENT_CYCLE_INCOMPLETE warning for end comment without start');
+  });
+
+  it('does NOT warn about cycle for non-comment tool execution', () => {
+    const result = evaluateCommentPolicy({
+      agentRole: 'issue-orchestrator',
       commentType: 'none',
       commentData: {},
       issueFetched: 'yes'
     });
 
     const cycleWarning = result.warnings.find(w => w.code === 'COMMENT_CYCLE_INCOMPLETE');
-    assert.ok(cycleWarning, 'Expected COMMENT_CYCLE_INCOMPLETE warning');
+    assert.strictEqual(cycleWarning, undefined);
+    // Should be GREEN_SAFE since no violations
+    assert.strictEqual(result.classification, 'GREEN_SAFE');
   });
 
   // ── External Bot Exclusion ─────────────────────────────────

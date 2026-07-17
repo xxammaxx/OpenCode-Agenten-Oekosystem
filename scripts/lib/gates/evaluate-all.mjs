@@ -205,11 +205,19 @@ export async function evaluateAllGates({
   const kernelResult = evaluateKernelGates(kernelCtx);
 
   // ── Phase 3: Policy Gates (SECOND) ───────────────────────────────
+  // Issue fetch is only required when a GitHub comment is being posted.
+  // For non-comment operations (tool execution only), the requirement
+  // is not applicable — we pass 'yes' to avoid blocking tool operations
+  // with COMMENT_ISSUE_NOT_FETCHED. The comment policy evaluator
+  // remains unchanged and deterministic.
+  const effectiveCommentType = enforcementContext.commentType || 'none';
   const commentPolicyCtx = {
     agentRole: agentRole || 'unknown',
-    commentType: enforcementContext.commentType || 'none',
+    commentType: effectiveCommentType,
     commentData: enforcementContext.commentData || {},
-    issueFetched: enforcementContext.issueFetched || 'no',
+    issueFetched: effectiveCommentType !== 'none'
+      ? (enforcementContext.issueFetched || 'no')
+      : 'yes',
     commitSha: enforcementContext.commitSha || null,
     hasExternalReview: enforcementContext.hasExternalReview || false
   };

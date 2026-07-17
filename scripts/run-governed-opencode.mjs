@@ -237,6 +237,7 @@ async function runLiveTests(targetRoot, binary) {
   const evalResult = spawnSync("node", [
     path.join(testRoot, ".agent-governance", "bin", "evaluate.mjs"),
     "--target", testRoot,
+    "--runtime", "opencode",
     "--action", "read",
     "--risk-tier", "LOW_LOCAL",
     "--json",
@@ -257,6 +258,7 @@ async function runLiveTests(targetRoot, binary) {
   const forceResult = spawnSync("node", [
     path.join(testRoot, ".agent-governance", "bin", "evaluate.mjs"),
     "--target", testRoot,
+    "--runtime", "opencode",
     "--action", "git push --force",
     "--json",
   ], {
@@ -276,6 +278,7 @@ async function runLiveTests(targetRoot, binary) {
   const escapeResult = spawnSync("node", [
     path.join(testRoot, ".agent-governance", "bin", "evaluate.mjs"),
     "--target", testRoot,
+    "--runtime", "opencode",
     "--action", "write",
     "--write-path", "/etc/passwd",
     "--json",
@@ -296,6 +299,7 @@ async function runLiveTests(targetRoot, binary) {
   const writeResult = spawnSync("node", [
     path.join(testRoot, ".agent-governance", "bin", "evaluate.mjs"),
     "--target", testRoot,
+    "--runtime", "opencode",
     "--action", "write",
     "--risk-tier", "LOW_LOCAL",
     "--write-path", path.join(testRoot, "safe-file.txt"),
