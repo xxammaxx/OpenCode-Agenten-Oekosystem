@@ -19,7 +19,7 @@
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, basename } from 'node:path';
-import { createAdapterResult, getConfidenceLevel } from './contract.mjs';
+import { createAdapterResult, getConfidenceLevel, CONFIDENCE_THRESHOLDS } from './contract.mjs';
 import { CLASSIFICATIONS, VERIFICATION_LEVELS } from '../gates/classifications.mjs';
 
 /** @type {string} */
@@ -32,12 +32,13 @@ const HERMES_HOME = process.env.HERMES_HOME || resolve(process.env.HOME || '/hom
 export function detect(context = {}) {
   const targetRoot = context.targetRoot || process.cwd();
   const signals = [];
-  let confidence = 0;
+  let projectConfidence = 0;
+  let globalConfidence = 0;
 
-  // Primary project signals
+  // ── Primary project signals ────────────────────────────────────
   if (existsSync(resolve(targetRoot, '.hermes.md'))) {
     signals.push({ signal: '.hermes.md (project)', weight: 35 });
-    confidence += 35;
+    projectConfidence += 35;
   }
 
   if (existsSync(resolve(targetRoot, '.hermes'))) {
@@ -46,43 +47,55 @@ export function detect(context = {}) {
       const entries = readdirSync(hermesDir);
       if (entries.includes('skill-bundles')) {
         signals.push({ signal: '.hermes/skill-bundles/', weight: 20 });
-        confidence += 20;
+        projectConfidence += 20;
       }
       if (entries.includes('skills')) {
         signals.push({ signal: '.hermes/skills/', weight: 15 });
-        confidence += 15;
+        projectConfidence += 15;
       }
       if (entries.includes('mcp')) {
         signals.push({ signal: '.hermes/mcp/', weight: 10 });
-        confidence += 10;
+        projectConfidence += 10;
       }
     } catch { /* cannot read */ }
   }
 
-  // Global install signals
+  // ── Global install signals ─────────────────────────────────────
   if (existsSync(resolve(HERMES_HOME, 'config.yaml'))) {
     signals.push({ signal: 'hermes config.yaml (global)', weight: 25 });
-    confidence += 25;
+    globalConfidence += 25;
   }
   if (existsSync(resolve(HERMES_HOME, 'state.db'))) {
     signals.push({ signal: 'hermes state.db (has run)', weight: 15 });
-    confidence += 15;
+    globalConfidence += 15;
   }
   if (existsSync(resolve(HERMES_HOME, 'skills'))) {
     signals.push({ signal: 'hermes skills/ (global)', weight: 10 });
-    confidence += 10;
+    globalConfidence += 10;
   }
 
-  // Check for Hermes-specific config in existing project files
+  // ── Hermes-specific config in project files ────────────────────
   const configPath = resolve(targetRoot, '.hermes', 'config.example.yaml');
   if (existsSync(configPath)) {
     try {
       const content = readFileSync(configPath, 'utf-8');
       if (content.includes('write_approval') || content.includes('canonical-working-method')) {
         signals.push({ signal: 'hermes config with write_approval', weight: 5 });
-        confidence += 5;
+        projectConfidence += 5;
       }
     } catch { /* skip */ }
+  }
+
+  // ── Project-Local Signal Gate ──────────────────────────────────
+  // ADR-006: Global signals alone must NOT trigger auto-detection.
+  // At least one project-local signal is required before the
+  // combined confidence can reach AMBER_THRESHOLD (50).
+  let confidence = projectConfidence + globalConfidence;
+
+  if (projectConfidence === 0) {
+    // No project-local Hermes signals → cap below detection threshold.
+    // Global signals still appear in `signals` for diagnostics.
+    confidence = Math.min(confidence, CONFIDENCE_THRESHOLDS.AMBER_THRESHOLD - 1);
   }
 
   confidence = Math.min(confidence, 100);
