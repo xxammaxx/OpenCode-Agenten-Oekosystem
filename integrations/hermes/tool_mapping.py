@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Tool mapping: Hermes tool names -> neutral operation descriptors.
 
 This module is the single source of truth for classifying Hermes tools

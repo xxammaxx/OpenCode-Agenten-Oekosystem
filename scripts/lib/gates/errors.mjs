@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Gate Kernel Error Types
  * Immutable error hierarchy for all gate evaluation failures.

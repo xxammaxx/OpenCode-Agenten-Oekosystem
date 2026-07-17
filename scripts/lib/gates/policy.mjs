@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Policy Gate Evaluator (Layer 2)
  *

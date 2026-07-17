@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Hard-Coded Kernel Gates
  *
@@ -63,7 +64,7 @@ registerKernelGate('NO_FORCE_PUSH', 'Force push is unconditionally blocked.', (c
   const command = (ctx.command || '').toLowerCase();
   const isForceAction = (
     command.includes('--force') ||
-    command.includes('-f ') ||
+    command.includes('-f ') || command.endsWith('-f') ||
     command.includes('force-push') ||
     command.includes('push --force')
   );

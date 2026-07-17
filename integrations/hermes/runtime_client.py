@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Client for the Node.js canonical gate evaluator.
 
 Bridges Python (Hermes hooks and slash commands) to the canonical gate

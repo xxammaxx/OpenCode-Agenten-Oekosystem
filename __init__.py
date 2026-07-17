@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Canonical Agent Governance — Hermes Runtime Enforcement Plugin.
 
 Entry point for installation via:

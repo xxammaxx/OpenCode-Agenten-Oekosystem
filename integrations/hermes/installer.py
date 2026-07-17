@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Python installer bridge for the Hermes plugin installation workflow.
 
 Wraps the repository's Node.js bootstrap installer

@@ -29,6 +29,9 @@ __pycache__/
 # Runtime-local approval receipts and nonce ledger (never versionable)
 .opencode/approvals/
 
+# Managed launcher runtime profiles (project-local, never versionable)
+.opencode/runtime-profile/
+
 # Local unsanitized compliance output (do not version)
 .opencode/reports/compliance/local/
 .opencode/reports/compliance/generated/

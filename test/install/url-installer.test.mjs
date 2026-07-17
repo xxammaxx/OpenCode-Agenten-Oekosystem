@@ -316,20 +316,28 @@ describe('URL Installer', () => {
     const approvalPath2 = path.join(t, 'approval2.json');
     await fs.writeFile(approvalPath2, JSON.stringify(approval2), 'utf8');
 
-    // Second apply — may detect conflicts with existing installation
-    // (backup of directory fails since backup expects files only)
+    // Second apply — must succeed with true idempotency
+    // With same source version and unmodified managed files, the
+    // second apply must complete successfully without data loss.
     const r2 = runNodeScript(INSTALL_SCRIPT, [
       '--target', t, '--apply', '--approval-file', approvalPath2, '--json'
     ]);
 
-    // The second apply may fail (RED_BLOCK) because the backup system
-    // cannot back up existing directories. That's acceptable — the
-    // important verification is that governance files survive.
-    // Check that the key files still exist regardless.
-    assert.ok(existsSync(path.join(t, '.agent-governance', 'runtime', 'kernel.mjs')),
-      'kernel.mjs should still exist after second apply attempt');
+    assert.ok([0, 1].includes(r2.status),
+      `Second apply exit code ${r2.status} should be 0 or 1 (GREEN_SAFE or AMBER_REVIEW). stderr: ${r2.stderr}`);
+
+    // Verify idempotency: key governance files must exist
+    assert.ok(existsSync(path.join(t, '.agent-governance')), '.agent-governance should exist after second apply');
+    assert.ok(existsSync(path.join(t, '.agent-governance', 'runtime', 'gates', 'kernel.mjs')),
+      'runtime/gates/kernel.mjs should exist after second apply');
     assert.ok(existsSync(path.join(t, '.agent-governance', 'manifest.json')),
-      'manifest.json should still exist after second apply attempt');
+      'manifest.json should exist after second apply');
+    assert.ok(existsSync(path.join(t, '.agent-governance', 'source-lock.json')),
+      'source-lock.json should exist after second apply');
+    assert.ok(existsSync(path.join(t, '.agent-governance', 'state')),
+      'state directory should exist after second apply');
+    assert.ok(existsSync(path.join(t, '.agent-governance', 'approvals')),
+      'approvals directory should exist after second apply');
   });
 
   // ── Rollback restores original state ───────────────────────

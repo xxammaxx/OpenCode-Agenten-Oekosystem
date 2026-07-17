@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Generic Runtime Adapter (Fallback)
  *

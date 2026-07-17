@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: MIT
 
 import { argv, exit } from 'node:process';
 import { existsSync } from 'node:fs';

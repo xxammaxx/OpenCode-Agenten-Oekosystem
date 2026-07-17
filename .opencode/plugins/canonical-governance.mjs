@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';

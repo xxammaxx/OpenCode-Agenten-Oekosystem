@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * evaluate-all.mjs — Canonical Gate Evaluation Entry Point
  *

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Hermes pre_tool_call hook for runtime gate enforcement."""
 
 import os
