@@ -52,6 +52,10 @@ if (args.rollback) {
 
 if (args.dryRun) {
   await dryRun()
+  // Drain stdout before exit: when stdout is piped (not a TTY),
+  // Node.js buffers output; process.exit() would discard pending
+  // data. write("") with a callback forces the buffer to flush.
+  await new Promise((resolve) => process.stdout.write("", resolve))
   process.exit(0)
 }
 
