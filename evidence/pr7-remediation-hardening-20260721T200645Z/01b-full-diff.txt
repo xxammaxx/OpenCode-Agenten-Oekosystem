@@ -1,0 +1,265 @@
+diff --git a/docs/reports/spec-kit-integration-final-report.md b/docs/reports/spec-kit-integration-final-report.md
+index 50985df..c17420c 100644
+--- a/docs/reports/spec-kit-integration-final-report.md
++++ b/docs/reports/spec-kit-integration-final-report.md
+@@ -46,6 +46,13 @@ nicht als unterstützte Native-Capabilities behauptet.
+ - Betriebssystem: Linux, x86_64
+ - Shell: `/bin/bash`
+ - Validierungsdatum: `2026-07-20`
++- **PR7 Remediation Notice (2026-07-21):** Evidence paths referenced in this report (e.g.,
++  `evidence/spec-kit-closure-*`, `evidence/spec-kit-final-closure-*`,
++  `evidence/spec-kit-assurance-20260720T193425Z/{01,02,04-20}*`) may not all be present in a
++  clean PR branch checkout. The evidence was generated in the main working tree and partially
++  materialized. Before relying on these paths, verify the referenced files exist or reference
++  the main working tree directly. Verification Contract AC-A9 requires all evidence references
++  to be resolvable before the PR proceeds to review.
+ 
+ ## Unterstützte OpenCode-Oberfläche
+ 
+@@ -173,11 +180,11 @@ Workflow-Delegation werden nicht als unterstützt behauptet.
+ - Runtime fokussiert: `78/78`, 17 Suiten, Exit 0, 0 übersprungen.
+ - Approval fokussiert: `36/36`, 3 Suiten, Exit 0, 0 übersprungen.
+ - Spec-Kit fokussiert: `12/12`, 2 Suiten, Exit 0, 0 übersprungen.
+-- Vollständige Suite: `425/425`, 41 Suiten, 0 übersprungen, Exit 0.
+-- Serielle Bestätigung: `425/425`, 41 Suiten, 0 übersprungen, Exit 0.
++- Vollständige Suite: `375/375`, 41 Suiten, 0 übersprungen, Exit 0.
++- Serielle Bestätigung: `375/375`, 41 Suiten, 0 übersprungen, Exit 0.
+ 
+-Die Baseline war `419/419`; sechs neue Assurance-/Regressionstests wurden
+-hinzugefügt, ohne vorherige Tests zu entfernen oder zu überspringen.
++Die Baseline war `375/375` (vor der PR7-Remediation). Nach der Hinzufügung der
++Red-Tests und des Redaction-Fixes im Rahmen der PR7-Remediation: `388/388`, 44 Suiten.
+ 
+ ## Validator-Ergebnis
+ 
+diff --git a/integrations/spec-kit/README.md b/integrations/spec-kit/README.md
+index c66828f..8cb7a84 100644
+--- a/integrations/spec-kit/README.md
++++ b/integrations/spec-kit/README.md
+@@ -66,10 +66,14 @@ node scripts/validate-ecosystem.mjs
+ node --check scripts/evaluate-operation.mjs
+ ```
+ 
+-Die Assurance-Matrix besteht mit 425/425 Tests; die 28 Redaction- und 12
+-Bridge-Contract-Tests decken die zusätzlichen Grenzen ab. ESLint, Prettier und TypeScript sind im Repository nicht
++Die Assurance-Matrix besteht mit 388/388 Tests (nach PR7-Remediation inkl. Redaction-Fix);
++die 28 Redaction- und 12 Bridge-Contract-Tests decken die zusätzlichen Grenzen ab. Die tatsächliche
++Testzahl wird aus dem jeweils aktuellen `node --test`-Lauf ermittelt und nicht aus Dokumentation
++übernommen. ESLint, Prettier und TypeScript sind im Repository nicht
+ vollständig konfiguriert/verfügbar; siehe
+-`evidence/spec-kit-final-closure-20260720T183149Z/21-lint-typecheck-format.txt`.
++`evidence/spec-kit-final-closure-20260720T183149Z/21-lint-typecheck-format.txt`
++(Hinweis: Evidence-Verzeichnis kann in einem cleanen PR-Branch-Checkout unvollständig sein;
++bei fehlenden Pfaden siehe Haupt-Working-Tree oder aktuelle Remediation-Evidence).
+ 
+ ## Bekannte Grenzen
+ 
+diff --git a/scripts/install-governance.mjs b/scripts/install-governance.mjs
+index 7b33851..e891340 100644
+--- a/scripts/install-governance.mjs
++++ b/scripts/install-governance.mjs
+@@ -134,8 +134,10 @@ function validateSourceRepository(repoRoot) {
+ }
+ 
+ function getRuntimeFileList() {
+-  // Preserve the gates/ and runtimes/ subdirectory structure to keep
+-  // relative imports intact (evaluate-all.mjs imports ../runtimes/*.mjs).
++  // Preserve the gates/, runtimes/, and security/ subdirectory structure to keep
++  // relative imports intact:
++  //   - evaluate-all.mjs imports ../runtimes/*.mjs
++  //   - runtimes/opencode.mjs imports ../security/redaction.mjs
+   return [
+     // gates/ directory — canonical gate evaluation modules
+     { source: "scripts/lib/gates/evaluate-all.mjs", dest: "gates/evaluate-all.mjs" },
+@@ -153,6 +155,8 @@ function getRuntimeFileList() {
+     { source: "scripts/lib/runtimes/opencode.mjs", dest: "runtimes/opencode.mjs" },
+     { source: "scripts/lib/runtimes/hermes.mjs", dest: "runtimes/hermes.mjs" },
+     { source: "scripts/lib/runtimes/odysseus.mjs", dest: "runtimes/odysseus.mjs" },
++    // security/ directory — security/privacy adapter modules
++    { source: "scripts/lib/security/redaction.mjs", dest: "security/redaction.mjs" },
+   ]
+ }
+ 
+@@ -641,10 +645,36 @@ async function validatePostApply(targetRoot) {
+   const issues = []
+   const warnings = []
+ 
++  // ── Use authoritative runtime file list (same as install + source_lock) ──
++  // This prevents drift between what getRuntimeFileList() installs and what
++  // validatePostApply checks. Every file in the authoritative list must exist
++  // in the installed target.
++  const runtimeFileList = getRuntimeFileList()
++  const runtimeDir = path.join(governanceRoot, "runtime")
++
++  if (!fs.existsSync(runtimeDir)) {
++    issues.push("Missing runtime directory")
++  } else {
++    for (const { dest } of runtimeFileList) {
++      const destPath = path.join(runtimeDir, dest)
++      if (!fs.existsSync(destPath)) {
++        issues.push(`Missing runtime file: ${relativePath(targetRoot, destPath)}`)
++        continue
++      }
++      // Check file is non-empty (catches corruption / truncation)
++      try {
++        const stat = fs.statSync(destPath)
++        if (stat.size === 0) {
++          issues.push(`Runtime file is empty (corrupt): ${relativePath(targetRoot, destPath)}`)
++        }
++      } catch {
++        issues.push(`Cannot stat runtime file: ${relativePath(targetRoot, destPath)}`)
++      }
++    }
++  }
++
++  // ── Bin and manifest files ──
+   const requiredFiles = [
+-    path.join(governanceRoot, "runtime", "gates", "evaluate-all.mjs"),
+-    path.join(governanceRoot, "runtime", "gates", "kernel.mjs"),
+-    path.join(governanceRoot, "runtime", "gates", "classifications.mjs"),
+     path.join(governanceRoot, "manifest.json"),
+     path.join(governanceRoot, "source-lock.json"),
+     path.join(governanceRoot, "bin", "evaluate.mjs"),
+@@ -656,23 +686,7 @@ async function validatePostApply(targetRoot) {
+     }
+   }
+ 
+-  const runtimeDir = path.join(governanceRoot, "runtime")
+-  if (fs.existsSync(runtimeDir)) {
+-    // Count files in gates/ and runtimes/ subdirectories
+-    let fileCount = 0;
+-    for (const sub of ["gates", "runtimes"]) {
+-      const subDir = path.join(runtimeDir, sub);
+-      if (fs.existsSync(subDir)) {
+-        fileCount += fs.readdirSync(subDir).filter(f => f.endsWith(".mjs")).length;
+-      }
+-    }
+-    if (fileCount < 10) {
+-      warnings.push(`Runtime directory has fewer than expected files: ${fileCount}`);
+-    }
+-  } else {
+-    issues.push("Missing runtime directory")
+-  }
+-
++  // ── Required directories ──
+   const requiredDirs = ["approvals", "evidence", "state"]
+   for (const dir of requiredDirs) {
+     const dirPath = path.join(governanceRoot, dir)
+@@ -681,6 +695,7 @@ async function validatePostApply(targetRoot) {
+     }
+   }
+ 
++  // ── Source-lock integrity ──
+   const sourceLockPath = path.join(governanceRoot, "source-lock.json")
+   if (fs.existsSync(sourceLockPath)) {
+     try {
+@@ -1113,7 +1128,16 @@ async function main() {
+   await runDryRunPhase(args)
+ }
+ 
+-main().catch((error) => {
+-  console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
+-  process.exit(2)
+-})
++export { validatePostApply, getRuntimeFileList }
++
++// Only call main when run directly (not imported by tests or other modules)
++const isDirectlyInvoked = process.argv[1] && (
++  process.argv[1] === fileURLToPath(import.meta.url) ||
++  path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))
++)
++if (isDirectlyInvoked) {
++  main().catch((error) => {
++    console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
++    process.exit(2)
++  })
++}
+diff --git a/test/install/resident-runtime.test.mjs b/test/install/resident-runtime.test.mjs
+index cad6ad9..fdef281 100644
+--- a/test/install/resident-runtime.test.mjs
++++ b/test/install/resident-runtime.test.mjs
+@@ -89,17 +89,34 @@ describe('Resident Runtime', () => {
+       maxBuffer: 10 * 1024 * 1024,
+     });
+ 
+-    const output = result.stdout + result.stderr;
+-    // Might fail if runtime detection is weak, but should output JSON
+-    let foundJson = false;
++    // The key assertion: bin/evaluate.mjs must not crash with ERR_MODULE_NOT_FOUND
++    // A non-zero exit for AMBER_REVIEW is legitimate (not a crash)
++    // Crashes produce status null (signal) or status > 128
++    assert.ok(
++      result.status !== null,
++      'bin/evaluate.mjs must not be terminated by a signal (crash)'
++    );
++
++    // Verify stderr does NOT contain ERR_MODULE_NOT_FOUND
++    const stderr = result.stderr || '';
++    assert.ok(
++      !stderr.includes('ERR_MODULE_NOT_FOUND'),
++      `bin/evaluate.mjs must not have import errors. stderr: ${stderr.slice(0, 200)}`
++    );
++
++    // Verify stdout is valid JSON (regardless of exit code)
++    let parsed;
+     try {
+-      const parsed = JSON.parse(result.stdout);
+-      assert.ok(parsed.classification, `Expected classification in output: ${result.stdout}`);
+-      foundJson = true;
+-    } catch {
+-      // If no JSON in stdout, check for valid stdout text
+-      assert.ok(output.length > 0, `bin/evaluate.mjs produced no output: exit=${result.status}`);
++      parsed = JSON.parse(result.stdout);
++    } catch (e) {
++      assert.fail(
++        `bin/evaluate.mjs must produce valid JSON on stdout. ` +
++        `Parse error: ${e.message}. Raw stdout: ${result.stdout?.slice(0, 200)}`
++      );
+     }
++
++    assert.ok(parsed.classification, 'Must include classification field');
++    // Reaching here proves the import chain is intact (no ERR_MODULE_NOT_FOUND)
+   });
+ 
+   // ── Kernel gates work from installed copy ──────────────────
+@@ -138,6 +155,40 @@ describe('Resident Runtime', () => {
+     }
+   });
+ 
++  // ── Security/redaction adapter is installed ─────────────
++
++  it('redaction.mjs is installed and importable', async () => {
++    const redactionPath = path.join(
++      target, '.agent-governance', 'runtime', 'security', 'redaction.mjs'
++    );
++    assert.ok(existsSync(redactionPath), 'redaction.mjs must be installed');
++
++    const mod = await import(redactionPath);
++    assert.ok(typeof mod.safeRedactText === 'function', 'safeRedactText must be a function');
++    assert.ok(typeof mod.safeSerialize === 'function', 'safeSerialize must be a function');
++    assert.ok(typeof mod.secretValuesFromEnv === 'function', 'secretValuesFromEnv must be a function');
++  });
++
++  it('opencode adapter import chain is intact', async () => {
++    const opencodePath = path.join(
++      target, '.agent-governance', 'runtime', 'runtimes', 'opencode.mjs'
++    );
++    // This import should resolve without ERR_MODULE_NOT_FOUND
++    // (it imports ../security/redaction.mjs which must be installed)
++    const mod = await import(opencodePath);
++    assert.strictEqual(mod.ADAPTER_ID, 'opencode', 'opencode adapter must identify itself');
++    assert.ok(typeof mod.detect === 'function', 'detect must be a function');
++  });
++
++  it('evaluate-all.mjs imports all transitive dependencies', async () => {
++    const evalAllPath = path.join(
++      target, '.agent-governance', 'runtime', 'gates', 'evaluate-all.mjs'
++    );
++    // Full import chain: evaluate-all → runtimes/opencode → security/redaction
++    const mod = await import(evalAllPath);
++    assert.ok(typeof mod.evaluateAllGates === 'function', 'evaluateAllGates must export');
++  });
++
+   // ── Installed files match manifest ──────────────────────────
+ 
+   it('manifest.json describes installed state accurately', async () => {

@@ -134,8 +134,10 @@ function validateSourceRepository(repoRoot) {
 }
 
 function getRuntimeFileList() {
-  // Preserve the gates/ and runtimes/ subdirectory structure to keep
-  // relative imports intact (evaluate-all.mjs imports ../runtimes/*.mjs).
+  // Preserve the gates/, runtimes/, and security/ subdirectory structure to keep
+  // relative imports intact:
+  //   - evaluate-all.mjs imports ../runtimes/*.mjs
+  //   - runtimes/opencode.mjs imports ../security/redaction.mjs
   return [
     // gates/ directory — canonical gate evaluation modules
     { source: "scripts/lib/gates/evaluate-all.mjs", dest: "gates/evaluate-all.mjs" },
@@ -153,6 +155,8 @@ function getRuntimeFileList() {
     { source: "scripts/lib/runtimes/opencode.mjs", dest: "runtimes/opencode.mjs" },
     { source: "scripts/lib/runtimes/hermes.mjs", dest: "runtimes/hermes.mjs" },
     { source: "scripts/lib/runtimes/odysseus.mjs", dest: "runtimes/odysseus.mjs" },
+    // security/ directory — security/privacy adapter modules
+    { source: "scripts/lib/security/redaction.mjs", dest: "security/redaction.mjs" },
   ]
 }
 
@@ -641,10 +645,36 @@ async function validatePostApply(targetRoot) {
   const issues = []
   const warnings = []
 
+  // ── Use authoritative runtime file list (same as install + source_lock) ──
+  // This prevents drift between what getRuntimeFileList() installs and what
+  // validatePostApply checks. Every file in the authoritative list must exist
+  // in the installed target.
+  const runtimeFileList = getRuntimeFileList()
+  const runtimeDir = path.join(governanceRoot, "runtime")
+
+  if (!fs.existsSync(runtimeDir)) {
+    issues.push("Missing runtime directory")
+  } else {
+    for (const { dest } of runtimeFileList) {
+      const destPath = path.join(runtimeDir, dest)
+      if (!fs.existsSync(destPath)) {
+        issues.push(`Missing runtime file: ${relativePath(targetRoot, destPath)}`)
+        continue
+      }
+      // Check file is non-empty (catches corruption / truncation)
+      try {
+        const stat = fs.statSync(destPath)
+        if (stat.size === 0) {
+          issues.push(`Runtime file is empty (corrupt): ${relativePath(targetRoot, destPath)}`)
+        }
+      } catch {
+        issues.push(`Cannot stat runtime file: ${relativePath(targetRoot, destPath)}`)
+      }
+    }
+  }
+
+  // ── Bin and manifest files ──
   const requiredFiles = [
-    path.join(governanceRoot, "runtime", "gates", "evaluate-all.mjs"),
-    path.join(governanceRoot, "runtime", "gates", "kernel.mjs"),
-    path.join(governanceRoot, "runtime", "gates", "classifications.mjs"),
     path.join(governanceRoot, "manifest.json"),
     path.join(governanceRoot, "source-lock.json"),
     path.join(governanceRoot, "bin", "evaluate.mjs"),
@@ -656,23 +686,7 @@ async function validatePostApply(targetRoot) {
     }
   }
 
-  const runtimeDir = path.join(governanceRoot, "runtime")
-  if (fs.existsSync(runtimeDir)) {
-    // Count files in gates/ and runtimes/ subdirectories
-    let fileCount = 0;
-    for (const sub of ["gates", "runtimes"]) {
-      const subDir = path.join(runtimeDir, sub);
-      if (fs.existsSync(subDir)) {
-        fileCount += fs.readdirSync(subDir).filter(f => f.endsWith(".mjs")).length;
-      }
-    }
-    if (fileCount < 10) {
-      warnings.push(`Runtime directory has fewer than expected files: ${fileCount}`);
-    }
-  } else {
-    issues.push("Missing runtime directory")
-  }
-
+  // ── Required directories ──
   const requiredDirs = ["approvals", "evidence", "state"]
   for (const dir of requiredDirs) {
     const dirPath = path.join(governanceRoot, dir)
@@ -681,6 +695,7 @@ async function validatePostApply(targetRoot) {
     }
   }
 
+  // ── Source-lock integrity ──
   const sourceLockPath = path.join(governanceRoot, "source-lock.json")
   if (fs.existsSync(sourceLockPath)) {
     try {
@@ -1113,7 +1128,16 @@ async function main() {
   await runDryRunPhase(args)
 }
 
-main().catch((error) => {
-  console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
-  process.exit(2)
-})
+export { validatePostApply, getRuntimeFileList }
+
+// Only call main when run directly (not imported by tests or other modules)
+const isDirectlyInvoked = process.argv[1] && (
+  process.argv[1] === fileURLToPath(import.meta.url) ||
+  path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))
+)
+if (isDirectlyInvoked) {
+  main().catch((error) => {
+    console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
+    process.exit(2)
+  })
+}

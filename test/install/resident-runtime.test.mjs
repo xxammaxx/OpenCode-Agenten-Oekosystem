@@ -89,17 +89,34 @@ describe('Resident Runtime', () => {
       maxBuffer: 10 * 1024 * 1024,
     });
 
-    const output = result.stdout + result.stderr;
-    // Might fail if runtime detection is weak, but should output JSON
-    let foundJson = false;
+    // The key assertion: bin/evaluate.mjs must not crash with ERR_MODULE_NOT_FOUND
+    // A non-zero exit for AMBER_REVIEW is legitimate (not a crash)
+    // Crashes produce status null (signal) or status > 128
+    assert.ok(
+      result.status !== null,
+      'bin/evaluate.mjs must not be terminated by a signal (crash)'
+    );
+
+    // Verify stderr does NOT contain ERR_MODULE_NOT_FOUND
+    const stderr = result.stderr || '';
+    assert.ok(
+      !stderr.includes('ERR_MODULE_NOT_FOUND'),
+      `bin/evaluate.mjs must not have import errors. stderr: ${stderr.slice(0, 200)}`
+    );
+
+    // Verify stdout is valid JSON (regardless of exit code)
+    let parsed;
     try {
-      const parsed = JSON.parse(result.stdout);
-      assert.ok(parsed.classification, `Expected classification in output: ${result.stdout}`);
-      foundJson = true;
-    } catch {
-      // If no JSON in stdout, check for valid stdout text
-      assert.ok(output.length > 0, `bin/evaluate.mjs produced no output: exit=${result.status}`);
+      parsed = JSON.parse(result.stdout);
+    } catch (e) {
+      assert.fail(
+        `bin/evaluate.mjs must produce valid JSON on stdout. ` +
+        `Parse error: ${e.message}. Raw stdout: ${result.stdout?.slice(0, 200)}`
+      );
     }
+
+    assert.ok(parsed.classification, 'Must include classification field');
+    // Reaching here proves the import chain is intact (no ERR_MODULE_NOT_FOUND)
   });
 
   // ── Kernel gates work from installed copy ──────────────────
@@ -136,6 +153,40 @@ describe('Resident Runtime', () => {
       const content = readFileSync(fp, 'utf8');
       assert.ok(content.length > 100, `${file} should have content`);
     }
+  });
+
+  // ── Security/redaction adapter is installed ─────────────
+
+  it('redaction.mjs is installed and importable', async () => {
+    const redactionPath = path.join(
+      target, '.agent-governance', 'runtime', 'security', 'redaction.mjs'
+    );
+    assert.ok(existsSync(redactionPath), 'redaction.mjs must be installed');
+
+    const mod = await import(redactionPath);
+    assert.ok(typeof mod.safeRedactText === 'function', 'safeRedactText must be a function');
+    assert.ok(typeof mod.safeSerialize === 'function', 'safeSerialize must be a function');
+    assert.ok(typeof mod.secretValuesFromEnv === 'function', 'secretValuesFromEnv must be a function');
+  });
+
+  it('opencode adapter import chain is intact', async () => {
+    const opencodePath = path.join(
+      target, '.agent-governance', 'runtime', 'runtimes', 'opencode.mjs'
+    );
+    // This import should resolve without ERR_MODULE_NOT_FOUND
+    // (it imports ../security/redaction.mjs which must be installed)
+    const mod = await import(opencodePath);
+    assert.strictEqual(mod.ADAPTER_ID, 'opencode', 'opencode adapter must identify itself');
+    assert.ok(typeof mod.detect === 'function', 'detect must be a function');
+  });
+
+  it('evaluate-all.mjs imports all transitive dependencies', async () => {
+    const evalAllPath = path.join(
+      target, '.agent-governance', 'runtime', 'gates', 'evaluate-all.mjs'
+    );
+    // Full import chain: evaluate-all → runtimes/opencode → security/redaction
+    const mod = await import(evalAllPath);
+    assert.ok(typeof mod.evaluateAllGates === 'function', 'evaluateAllGates must export');
   });
 
   // ── Installed files match manifest ──────────────────────────

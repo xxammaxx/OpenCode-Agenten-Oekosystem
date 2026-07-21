@@ -1,0 +1,155 @@
+TAP version 13
+# Subtest: RED TEST — validatePostApply must check security/redaction.mjs (pre-fix: expected FAIL)
+    # Subtest: validatePostApply detects missing security/redaction.mjs after installation
+    not ok 1 - validatePostApply detects missing security/redaction.mjs after installation
+      ---
+      duration_ms: 153.853395
+      type: 'test'
+      location: '/tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:90:3'
+      failureType: 'testCodeFailure'
+      error: 'validatePostApply must NOT report GREEN_SAFE when security/redaction.mjs is missing. Got: postValidation=GREEN_SAFE, issues=[]'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'GREEN_SAFE'
+      actual: 'GREEN_SAFE'
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:116:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: validatePostApply detects missing security/ directory entire
+    not ok 2 - validatePostApply detects missing security/ directory entire
+      ---
+      duration_ms: 152.972131
+      type: 'test'
+      location: '/tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:132:3'
+      failureType: 'testCodeFailure'
+      error: 'validatePostApply must NOT report GREEN_SAFE when security/ directory is missing. Got: postValidation=GREEN_SAFE'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'GREEN_SAFE'
+      actual: 'GREEN_SAFE'
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:147:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: validatePostApply detects corrupt redaction.mjs (empty file)
+    not ok 3 - validatePostApply detects corrupt redaction.mjs (empty file)
+      ---
+      duration_ms: 145.714299
+      type: 'test'
+      location: '/tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:157:3'
+      failureType: 'testCodeFailure'
+      error: 'validatePostApply must detect empty/corrupt redaction.mjs. Got: postValidation=GREEN_SAFE'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'GREEN_SAFE'
+      actual: 'GREEN_SAFE'
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:170:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: validatePostApply uses same file list as getRuntimeFileList (no drift)
+    ok 4 - validatePostApply uses same file list as getRuntimeFileList (no drift)
+      ---
+      duration_ms: 150.215006
+      type: 'test'
+      ...
+    # Subtest: installer exit code is non-zero when runtime files are missing
+    not ok 5 - installer exit code is non-zero when runtime files are missing
+      ---
+      duration_ms: 150.672059
+      type: 'test'
+      location: '/tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:209:3'
+      failureType: 'testCodeFailure'
+      error: 'Installer must exit non-zero when security/redaction.mjs is missing. Got exit code: 0'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 0
+      actual: 0
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:222:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: validatePostApply checks installed target (not repo source)
+    not ok 6 - validatePostApply checks installed target (not repo source)
+      ---
+      duration_ms: 154.509644
+      type: 'test'
+      location: '/tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:232:3'
+      failureType: 'testCodeFailure'
+      error: 'validatePostApply must detect missing file in target, not fall back to repo source. Got: postValidation=GREEN_SAFE'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'GREEN_SAFE'
+      actual: 'GREEN_SAFE'
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:246:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: missing runtime file produces a named issue referencing the file path
+    not ok 7 - missing runtime file produces a named issue referencing the file path
+      ---
+      duration_ms: 159.702448
+      type: 'test'
+      location: '/tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:256:3'
+      failureType: 'testCodeFailure'
+      error: 'Missing security/redaction.mjs must be named in post-validation issues. Got: {"issues":[],"warnings":[]}'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:268:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: GREEN_SAFE requires ALL runtime files present (no false green)
+    not ok 8 - GREEN_SAFE requires ALL runtime files present (no false green)
+      ---
+      duration_ms: 161.855974
+      type: 'test'
+      location: '/tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:278:3'
+      failureType: 'testCodeFailure'
+      error: 'GREEN_SAFE must not be reported when runtime files are missing, even if file count remains >= 10. Got: postValidation=GREEN_SAFE'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'GREEN_SAFE'
+      actual: 'GREEN_SAFE'
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:292:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..8
+not ok 1 - RED TEST — validatePostApply must check security/redaction.mjs (pre-fix: expected FAIL)
+  ---
+  duration_ms: 1248.430427
+  type: 'suite'
+  location: '/tmp/tmp.TftyfKa4sG/pr7-remediation-model-assurance/test/install/red-test-validate-post-apply-security.test.mjs:75:1'
+  failureType: 'subtestsFailed'
+  error: '7 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 8
+# suites 1
+# pass 1
+# fail 7
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1307.023902

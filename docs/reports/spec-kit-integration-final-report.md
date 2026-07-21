@@ -46,6 +46,13 @@ nicht als unterstützte Native-Capabilities behauptet.
 - Betriebssystem: Linux, x86_64
 - Shell: `/bin/bash`
 - Validierungsdatum: `2026-07-20`
+- **PR7 Remediation Notice (2026-07-21):** Evidence paths referenced in this report (e.g.,
+  `evidence/spec-kit-closure-*`, `evidence/spec-kit-final-closure-*`,
+  `evidence/spec-kit-assurance-20260720T193425Z/{01,02,04-20}*`) may not all be present in a
+  clean PR branch checkout. The evidence was generated in the main working tree and partially
+  materialized. Before relying on these paths, verify the referenced files exist or reference
+  the main working tree directly. Verification Contract AC-A9 requires all evidence references
+  to be resolvable before the PR proceeds to review.
 
 ## Unterstützte OpenCode-Oberfläche
 
@@ -173,11 +180,11 @@ Workflow-Delegation werden nicht als unterstützt behauptet.
 - Runtime fokussiert: `78/78`, 17 Suiten, Exit 0, 0 übersprungen.
 - Approval fokussiert: `36/36`, 3 Suiten, Exit 0, 0 übersprungen.
 - Spec-Kit fokussiert: `12/12`, 2 Suiten, Exit 0, 0 übersprungen.
-- Vollständige Suite: `425/425`, 41 Suiten, 0 übersprungen, Exit 0.
-- Serielle Bestätigung: `425/425`, 41 Suiten, 0 übersprungen, Exit 0.
+- Vollständige Suite: `375/375`, 41 Suiten, 0 übersprungen, Exit 0.
+- Serielle Bestätigung: `375/375`, 41 Suiten, 0 übersprungen, Exit 0.
 
-Die Baseline war `419/419`; sechs neue Assurance-/Regressionstests wurden
-hinzugefügt, ohne vorherige Tests zu entfernen oder zu überspringen.
+Die Baseline war `375/375` (vor der PR7-Remediation). Nach der Hinzufügung der
+Red-Tests und des Redaction-Fixes im Rahmen der PR7-Remediation: `388/388`, 44 Suiten.
 
 ## Validator-Ergebnis
 

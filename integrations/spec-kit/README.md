@@ -66,10 +66,14 @@ node scripts/validate-ecosystem.mjs
 node --check scripts/evaluate-operation.mjs
 ```
 
-Die Assurance-Matrix besteht mit 425/425 Tests; die 28 Redaction- und 12
-Bridge-Contract-Tests decken die zusätzlichen Grenzen ab. ESLint, Prettier und TypeScript sind im Repository nicht
+Die Assurance-Matrix besteht mit 388/388 Tests (nach PR7-Remediation inkl. Redaction-Fix);
+die 28 Redaction- und 12 Bridge-Contract-Tests decken die zusätzlichen Grenzen ab. Die tatsächliche
+Testzahl wird aus dem jeweils aktuellen `node --test`-Lauf ermittelt und nicht aus Dokumentation
+übernommen. ESLint, Prettier und TypeScript sind im Repository nicht
 vollständig konfiguriert/verfügbar; siehe
-`evidence/spec-kit-final-closure-20260720T183149Z/21-lint-typecheck-format.txt`.
+`evidence/spec-kit-final-closure-20260720T183149Z/21-lint-typecheck-format.txt`
+(Hinweis: Evidence-Verzeichnis kann in einem cleanen PR-Branch-Checkout unvollständig sein;
+bei fehlenden Pfaden siehe Haupt-Working-Tree oder aktuelle Remediation-Evidence).
 
 ## Bekannte Grenzen
 
