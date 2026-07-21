@@ -226,6 +226,18 @@ export class ExpiredApprovalViolation extends KernelGateViolation {
   }
 }
 
+export class ApprovalIntegrityViolation extends KernelGateViolation {
+  constructor({ evidence = {} } = {}) {
+    super({
+      code: 'NO_GATE_APPROVAL_INTEGRITY',
+      gateId: 'NO_APPROVAL_INTEGRITY',
+      message: 'Approval receipt integrity or ledger safety validation failed.',
+      evidence
+    });
+    this.name = 'ApprovalIntegrityViolation';
+  }
+}
+
 export class RuntimeAdapterOverrideViolation extends KernelGateViolation {
   constructor({ evidence = {} } = {}) {
     super({
@@ -299,6 +311,7 @@ export const ALL_KERNEL_VIOLATIONS = [
   CrossActionApprovalViolation,
   CrossScopeApprovalViolation,
   ExpiredApprovalViolation,
+  ApprovalIntegrityViolation,
   RuntimeAdapterOverrideViolation,
   GlobalRuntimeConfigWriteViolation,
   AGPLIncorporationViolation

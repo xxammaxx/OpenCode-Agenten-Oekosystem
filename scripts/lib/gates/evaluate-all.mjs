@@ -33,7 +33,7 @@ import { evaluateKernelGates, detectKernelGateOverrides, getKernelGateIds } from
 import { evaluateCommentPolicy } from './policy.mjs';
 import { createGateDecision, CLASSIFICATIONS, VERIFICATION_LEVELS, classificationToExitCode, createStructuralDecision } from './decision.mjs';
 import { validateClaimEvidence } from './evidence.mjs';
-import { validateReceiptStructure, consumeReceipt, VALID_ACTIONS } from './approval.mjs';
+import { validateReceiptStructure, consumeReceipt, getRepositoryContext, VALID_ACTIONS } from './approval.mjs';
 import { normalizeRuntime, validateAdapterAgainstKernel, getConfidenceLevel, KNOWN_RUNTIMES } from '../runtimes/contract.mjs';
 import * as genericAdapter from '../runtimes/generic.mjs';
 import * as opencodeAdapter from '../runtimes/opencode.mjs';
@@ -340,6 +340,17 @@ export async function evaluateAllGates({
   const consumedApprovals = [];
   const approvalIssues = [];
   const validApprovals = [];
+  let repositoryContext = null;
+  try {
+    repositoryContext = getRepositoryContext(absTarget);
+  } catch {
+    repositoryContext = {
+      repository_identity: `local:${absTarget}`,
+      project_path: absTarget,
+      branch: null,
+      head: null
+    };
+  }
 
   for (const approval of approvalData) {
     const structIssues = validateReceiptStructure(approval);
@@ -353,7 +364,15 @@ export async function evaluateAllGates({
         const consumed = consumeReceipt(approval, {
           action,
           runtime: detectedAs,
-          gitBranch: enforcementContext.gitBranch || 'unknown'
+          repository_identity: enforcementContext.repository_identity || repositoryContext.repository_identity,
+          project_path: enforcementContext.project_path || repositoryContext.project_path,
+          branch: enforcementContext.branch || enforcementContext.gitBranch || repositoryContext.branch,
+          head: enforcementContext.head || enforcementContext.gitCommit || repositoryContext.head,
+          phase: enforcementContext.phase || 'before-implement',
+          risk_tier: enforcementContext.risk_tier || enforcementContext.riskTier || riskTier,
+          scope: enforcementContext.scope || writePaths,
+          policyFile: enforcementContext.policyFile,
+          baseDir: absTarget
         });
         consumedApprovals.push(consumed);
         validApprovals.push(approval);
@@ -378,6 +397,24 @@ export async function evaluateAllGates({
     }
   }
 
+  const approvalPolicyResult = approvalIssues.length > 0
+    ? {
+        classification: CLASSIFICATIONS.RED_BLOCK,
+        verificationLevel: VERIFICATION_LEVELS.FAILED,
+        blockedBy: approvalIssues.map((entry) => ({
+          gateId: 'NO_APPROVAL_RECEIPT',
+          code: entry.issues?.[0]?.issue || 'APPROVAL_RECEIPT_INVALID',
+          message: 'Approval receipt was rejected by the canonical receipt contract.',
+          layer: 'approval',
+          evidence: { nonce: entry.nonce || 'unknown' }
+        }))
+      }
+    : {
+        classification: CLASSIFICATIONS.GREEN_SAFE,
+        verificationLevel: VERIFICATION_LEVELS.STRUCTURAL_PASS,
+        blockedBy: []
+      };
+
   // ── Phase 8: Validate evidence ──────────────────────────────────
   const evidenceValidation = evidenceData.length > 0
     ? validateClaimEvidence('verification_contract', evidenceData.map(e => e.type || 'unknown'), null)
@@ -396,6 +433,7 @@ export async function evaluateAllGates({
         layer: 'policy'
       }))
     },
+    approvalPolicyResult,
     ...projectGatesResult
   ];
 

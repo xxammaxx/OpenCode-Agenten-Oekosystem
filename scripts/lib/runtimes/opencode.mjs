@@ -20,6 +20,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, basename } from 'node:path';
 import { createAdapterResult, getConfidenceLevel } from './contract.mjs';
 import { CLASSIFICATIONS, VERIFICATION_LEVELS } from '../gates/classifications.mjs';
+import { safeRedactText, secretValuesFromEnv } from '../security/redaction.mjs';
 
 /** @type {string} */
 export const ADAPTER_ID = 'opencode';
@@ -296,7 +297,7 @@ export async function runtimeSmoke(context = {}) {
     return {
       runtime: ADAPTER_ID,
       passed: false,
-      failures: [`OpenCode CLI not available: ${e.message}`],
+      failures: [`OpenCode CLI not available: ${safeRedactText(e?.message || e, { secrets: secretValuesFromEnv() })}`],
       toolGaps: ['OPENGODE_CLI_NOT_FOUND'],
       verificationLevel: VERIFICATION_LEVELS.TOOL_GAP
     };

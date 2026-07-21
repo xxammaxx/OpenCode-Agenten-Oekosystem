@@ -8,7 +8,10 @@ import { parseJsonc } from "../../scripts/lib/jsonc.mjs"
 import { validateAgentFrontmatter, validateSkillFrontmatter } from "../../scripts/lib/frontmatter.mjs"
 import { loadManifest, validateManifest } from "../../scripts/lib/manifest.mjs"
 
-const IGNORE_DIRS = new Set([".git", "node_modules", ".opencode/backups"])
+// `.tmp/` contains disposable local tool installations and test artifacts;
+// it is intentionally outside the repository's source/documentation truth
+// surface and may contain vendor paths from those tools.
+const IGNORE_DIRS = new Set([".git", "node_modules", ".opencode/backups", ".tmp"])
 
 test("repository validation passes", async () => {
   const manifest = await loadManifest(path.join(repoRoot, "ecosystem.manifest.json"))

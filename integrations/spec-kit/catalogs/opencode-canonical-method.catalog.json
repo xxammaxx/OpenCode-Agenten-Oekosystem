@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "presets": {
+    "opencode-canonical-method": {
+      "name": "OpenCode Canonical Method",
+      "version": "0.1.0",
+      "description": "Canonical working method preset",
+      "author": "xxammaxx",
+      "license": "MIT",
+      "download_url": "http://127.0.0.1:8765/opencode-canonical-method-0.1.0.zip",
+      "sha256": "sha256:38e12d3a2c49e8fdcb2d2a5894628abcb4973c7f854f6a4b014b393003884c33",
+      "requires": {
+        "speckit_version": ">=0.13.0,<0.14.0"
+      },
+      "tags": ["opencode", "canonical-method"]
+    }
+  }
+}

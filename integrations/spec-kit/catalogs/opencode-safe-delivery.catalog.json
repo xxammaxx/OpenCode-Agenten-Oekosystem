@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "workflows": {
+    "opencode-safe-delivery": {
+      "id": "opencode-safe-delivery",
+      "name": "OpenCode Safe Delivery",
+      "version": "0.1.0",
+      "description": "Evidence-gated safe delivery workflow",
+      "author": "xxammaxx",
+      "license": "MIT",
+      "url": "http://127.0.0.1:8765/opencode-safe-delivery-0.1.0.yml",
+      "requires": {
+        "speckit_version": ">=0.13.0,<0.14.0"
+      },
+      "tags": ["opencode", "safe-delivery", "evidence"]
+    }
+  }
+}

@@ -21,12 +21,14 @@ import {
   isInsideRoot,
 } from "./lib/paths.mjs"
 import { createBackup, restoreBackup } from "./lib/backup.mjs"
+import { safeRedactText, safeSerialize, secretValuesFromEnv } from "./lib/security/redaction.mjs"
 import {
   CLASSIFICATIONS,
   classificationToExitCode,
 } from "./lib/gates/classifications.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+const REDACTION_OPTIONS = Object.freeze({ secrets: secretValuesFromEnv() })
 
 function timestampSlug(date = new Date()) {
   return date.toISOString().replace(/[:.]/g, "-")
@@ -580,7 +582,7 @@ const result = await evaluateAllGates({
 });
 
 if (args.json) {
-  console.log(JSON.stringify(result, null, 2));
+    console.log(safeSerialize(result, REDACTION_OPTIONS));
 } else {
   console.log(\`Classification: \${result.classification}\`);
   console.log(\`Allowed: \${result.allowed}\`);
@@ -862,10 +864,10 @@ async function runApplyPhase(args) {
     manifest,
     post_validation: postValidation,
   }
-  await fsPromises.writeFile(reportPath, JSON.stringify(report, null, 2) + "\n", "utf8")
+  await fsPromises.writeFile(reportPath, `${safeSerialize(report, REDACTION_OPTIONS)}\n`, "utf8")
 
   if (args.json) {
-    console.log(JSON.stringify(report, null, 2))
+    console.log(safeSerialize(report, REDACTION_OPTIONS))
   } else {
     console.log("\n=== Governance Installation Complete ===")
     console.log(`\nClassification: ${postValidation.classification}`)
@@ -919,11 +921,11 @@ async function runDryRunPhase(args) {
   if (sourceMissing.length > 0) {
     if (args.json) {
       console.log(
-        JSON.stringify({
+        safeSerialize({
           classification: "RED_BLOCK",
           reason: "Source repository missing required files",
           missing_files: sourceMissing,
-        })
+        }, REDACTION_OPTIONS)
       )
     } else {
       console.log("RED_BLOCK: Source repository is missing required files:")
@@ -939,11 +941,11 @@ async function runDryRunPhase(args) {
   if (!fs.existsSync(targetRoot)) {
     if (args.json) {
       console.log(
-        JSON.stringify({
+        safeSerialize({
           classification: "RED_BLOCK",
           reason: "Target directory does not exist",
           target_root: targetRoot,
-        })
+        }, REDACTION_OPTIONS)
       )
     } else {
       console.log(`RED_BLOCK: Target "${targetRoot}" does not exist.`)
@@ -961,11 +963,11 @@ async function runDryRunPhase(args) {
   if (!targetWritable) {
     if (args.json) {
       console.log(
-        JSON.stringify({
+        safeSerialize({
           classification: "RED_BLOCK",
           reason: "Target directory is not writable",
           target_root: targetRoot,
-        })
+        }, REDACTION_OPTIONS)
       )
     } else {
       console.log(`RED_BLOCK: Target "${targetRoot}" is not writable.`)
@@ -1029,7 +1031,7 @@ async function runDryRunPhase(args) {
         .filter(Boolean),
       exit_code: classificationToExitCode(classification),
     }
-    console.log(JSON.stringify(output, null, 2))
+    console.log(safeSerialize(output, REDACTION_OPTIONS))
   } else {
     console.log("=== Canonical Agent Governance: Dry-Run ===\n")
     console.log(`Target: ${targetRoot}`)
@@ -1112,6 +1114,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error))
+  console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
   process.exit(2)
 })

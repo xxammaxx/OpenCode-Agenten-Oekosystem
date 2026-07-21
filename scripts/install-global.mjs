@@ -13,6 +13,7 @@ import {
   copyFile,
 } from "./lib/paths.mjs"
 import { createBackup, restoreBackup } from "./lib/backup.mjs"
+import { safeRedactText, secretValuesFromEnv } from "./lib/security/redaction.mjs"
 
 // ---------------------------------------------------------------------------
 // Directory skip list (mirrors discovery.mjs and validate-ecosystem.mjs)
@@ -62,7 +63,7 @@ if (args.dryRun) {
 try {
   await install()
 } catch (error) {
-  console.error(error instanceof Error ? error.message : String(error))
+  console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
   process.exit(1)
 }
 

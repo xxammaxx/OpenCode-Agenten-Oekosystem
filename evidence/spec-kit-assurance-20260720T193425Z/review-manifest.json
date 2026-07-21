@@ -1,0 +1,29 @@
+{
+  "package": "evidence/spec-kit-assurance-20260720T193425Z/review-package",
+  "created_at": "2026-07-20T19:34:25Z",
+  "revision": "v3-final-artifact-correction-before-independent-review",
+  "algorithm": "SHA-256",
+  "immutable_snapshot": true,
+  "files": [
+    {"path":"00-README.md","sha256":"b7bc4dc26543bd7c4bd2f17807a2f1aa3bc77c4f66f7c7363d39ef29f17ffeaa"},
+    {"path":"01-git-baseline.txt","sha256":"22d42579ea1ec2d7e608a692240bdfc3141ea63c4d143b37fbd112834b4a0494"},
+    {"path":"02-assurance-file-list.txt","sha256":"43e04ce729a6af22b329f9b03ab9074d16c201fde833862ee37ede8ec8d28f4e"},
+    {"path":"03-assurance-diff.patch","sha256":"e44191cfa74162e32c2e7cadc41d659aae1a185781f7a1c105982b9dd41523ae"},
+    {"path":"04-mixed-file-boundary.md","sha256":"92c42b885fea49795313b260caff48b861e510cb98551af2f917835008a41657"},
+    {"path":"05-verification-contract.md","sha256":"c238c885b9e4f88b48c07f687b5fa613ababefd498ce45e6cbeb81c0e0619fee"},
+    {"path":"06-architecture-adr.md","sha256":"e2081594b2984b8a0f426eeb29619368f50232cfe441112a28d862930db3ea74"},
+    {"path":"07-supported-surface.md","sha256":"a594f194c7f9a178090834459d21f8c35a301a144c981e4ecef9373d05b29946"},
+    {"path":"08-leak-reproduction.md","sha256":"5a71c7d74c2ae2bb65772c4ce3fb8f383183b36132f35785199864938bf698f6"},
+    {"path":"09-redaction-tests.md","sha256":"7faa3ed68b47fb056075dca52c074ae3ed343332809768d65a4b03fd5abfc71d"},
+    {"path":"10-recursive-scan.md","sha256":"31f6e012d24939f4e0f09ca6bf6589e0d3252b498cc118f7836bd599dcb1a477"},
+    {"path":"11-approval-evidence.md","sha256":"3f1df64aa216ac31b935ae301e2c0a9f0f798a920c1c6abceb9a4c3d4722c046"},
+    {"path":"12-runtime-enforcement.md","sha256":"a38e47587f10caeae6b5571a497f6e2c33aac99dc8543aa845cf820bd280bc1b"},
+    {"path":"13-bundle-capability-matrix.md","sha256":"4e35729577330196157a98708cf171c259184d4ff7c4eedcaeabf371f441f853"},
+    {"path":"14-full-test-results.md","sha256":"e728d4fca14d8cce5dc308a3a4b32e3cefb6e417437b72a859955fc17150fe04"},
+    {"path":"15-current-final-report.md","sha256":"4e235c989c2fc41b614def8a56d22b890444f96f251d1b88321d71b190a01a31"},
+    {"path":"16-accidental-init-recovery.md","sha256":"82bd804e0493821df45d9453cce34d93265f4b4d8ea5775b1b6a033ddd5d71fc"},
+    {"path":"17-documentation-claim-audit.md","sha256":"619c3933ff83865798230bde4a064334876cb218adba2b00e90cd13759e350a8"},
+    {"path":"18-initial-status.txt","sha256":"f5eac2acece626f3c33af28c42980229dc6bf886ce7a52aa2c82b82b28acac24"},
+    {"path":"19-persistence-boundary.md","sha256":"51cd091c733705ba839a47e36141465bd441d297b2c50b4953cabcda76d2a3c8"}
+  ]
+}

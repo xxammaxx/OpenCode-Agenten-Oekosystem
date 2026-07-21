@@ -1,0 +1,4 @@
+enforcement:
+  extension_hooks: advisory
+  workflow_shell_gate: required
+  runtime_kernel: authoritative

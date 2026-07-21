@@ -1,0 +1,54 @@
+schema_version: "1.0"
+
+preset:
+  id: "opencode-canonical-method"
+  name: "OpenCode Canonical Working Method"
+  version: "0.1.0"
+  description: "Spec Kit command guidance aligned with the repository Canonical Working Method"
+  author: "xxammaxx"
+  repository: "https://github.com/xxammaxx/OpenCode-Agenten-Oekosystem"
+  license: "MIT"
+
+requires:
+  speckit_version: ">=0.13.0,<0.14.0"
+
+provides:
+  templates:
+    - type: "command"
+      name: "speckit.constitution"
+      file: "commands/speckit.constitution.md"
+      replaces: "speckit.constitution"
+    - type: "command"
+      name: "speckit.specify"
+      file: "commands/speckit.specify.md"
+      replaces: "speckit.specify"
+    - type: "command"
+      name: "speckit.clarify"
+      file: "commands/speckit.clarify.md"
+      replaces: "speckit.clarify"
+    - type: "command"
+      name: "speckit.plan"
+      file: "commands/speckit.plan.md"
+      replaces: "speckit.plan"
+    - type: "command"
+      name: "speckit.tasks"
+      file: "commands/speckit.tasks.md"
+      replaces: "speckit.tasks"
+    - type: "command"
+      name: "speckit.analyze"
+      file: "commands/speckit.analyze.md"
+      replaces: "speckit.analyze"
+    - type: "command"
+      name: "speckit.implement"
+      file: "commands/speckit.implement.md"
+      replaces: "speckit.implement"
+    - type: "command"
+      name: "speckit.checklist"
+      file: "commands/speckit.checklist.md"
+      replaces: "speckit.checklist"
+
+tags:
+  - opencode
+  - canonical-method
+  - evidence
+  - human-gates

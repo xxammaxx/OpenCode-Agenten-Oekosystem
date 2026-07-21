@@ -19,6 +19,7 @@
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { evaluateAllGates, CLASSIFICATIONS, VERIFICATION_LEVELS, classificationToExitCode, VALID_ACTIONS, KNOWN_RUNTIMES } from './lib/gates/evaluate-all.mjs';
+import { safeRedactText, safeSerialize, secretValuesFromEnv } from './lib/security/redaction.mjs';
 
 // ── CLI Argument Parsing ──────────────────────────────────────────
 
@@ -315,7 +316,7 @@ async function main() {
 
   // Output
   if (args.json) {
-    console.log(JSON.stringify(decision, null, 2));
+    console.log(safeSerialize(decision, { secrets: secretValuesFromEnv() }));
   } else {
     printHumanReadable(decision);
   }
@@ -324,6 +325,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error('FATAL:', err.message);
+  console.error('FATAL:', safeRedactText(err?.message || err, { secrets: secretValuesFromEnv() }));
   process.exit(2);
 });

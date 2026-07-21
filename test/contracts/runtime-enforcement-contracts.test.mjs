@@ -661,6 +661,8 @@ describe('R-008: Approval Metadata Enforcement', () => {
       action: 'push',
       runtime: 'generic',
       targetRoot: '/tmp/test',
+      gitBranch: 'main',
+      gitCommit: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     });
 
     // Try to consume it for a different action

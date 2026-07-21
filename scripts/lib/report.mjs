@@ -1,15 +1,27 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 import { ensureParentDirectory } from "./paths.mjs"
+import { safeRedactText, safeSerialize, secretValuesFromEnv } from "./security/redaction.mjs"
+
+const REDACTION_OPTIONS = Object.freeze({ secrets: secretValuesFromEnv() })
+
+function prettySafeJson(value) {
+  const serialized = safeSerialize(value, REDACTION_OPTIONS)
+  try {
+    return JSON.stringify(JSON.parse(serialized), null, 2)
+  } catch {
+    return JSON.stringify("[REDACTED_UNSERIALIZABLE]", null, 2)
+  }
+}
 
 export async function writeJsonReport(filePath, data) {
   await ensureParentDirectory(filePath)
-  await fs.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, "utf8")
+  await fs.writeFile(filePath, `${prettySafeJson(data)}\n`, "utf8")
 }
 
 export async function writeMarkdownReport(filePath, markdown) {
   await ensureParentDirectory(filePath)
-  await fs.writeFile(filePath, `${markdown.trimEnd()}\n`, "utf8")
+  await fs.writeFile(filePath, `${safeRedactText(markdown, REDACTION_OPTIONS).trimEnd()}\n`, "utf8")
 }
 
 export function renderKeyValueList(entries) {

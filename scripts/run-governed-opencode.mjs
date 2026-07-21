@@ -20,6 +20,7 @@ import { spawnSync, spawn } from "node:child_process"
 import os from "node:os"
 import crypto from "node:crypto"
 import { fileURLToPath } from "node:url"
+import { safeRedactText, secretValuesFromEnv } from "./lib/security/redaction.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -495,6 +496,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error))
+  console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
   process.exit(2)
 })

@@ -8,11 +8,12 @@ import { loadManifest, validateManifest } from "./lib/manifest.mjs"
 import { extractFrontmatter, validateAgentFrontmatter, validateSkillFrontmatter } from "./lib/frontmatter.mjs"
 import { parseJsonc } from "./lib/jsonc.mjs"
 import { pathExists, readTextIfExists, toAbsolutePath, normalizePosix } from "./lib/paths.mjs"
+import { safeRedactText, secretValuesFromEnv } from "./lib/security/redaction.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
 await main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error))
+  console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
   process.exitCode = 2
 })
 

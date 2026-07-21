@@ -13,6 +13,7 @@ import { renderDiscoveryMarkdown, renderPlanMarkdown, renderRunReportMarkdown, w
 import { selectMcpCandidates } from "./lib/mcp.mjs"
 import { mergeDeep, mergeManagedSections } from "./lib/merge.mjs"
 import { evaluateAllGates, CLASSIFICATIONS } from "./lib/gates/evaluate-all.mjs"
+import { safeRedactText, secretValuesFromEnv } from "./lib/security/redaction.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -32,7 +33,7 @@ const targetRoot = args.target ? toAbsolutePath(args.target) : null
 const manifestPath = path.join(repoRoot, "ecosystem.manifest.json")
 
 await main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error))
+  console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
   process.exitCode = 1
 })
 

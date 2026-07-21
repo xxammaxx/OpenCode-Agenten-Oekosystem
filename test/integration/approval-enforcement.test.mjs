@@ -19,8 +19,9 @@ import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import {
   createApprovalReceipt,
-  approveReceipt,
-  consumeReceipt,
+  approveReceipt as rawApproveReceipt,
+  consumeReceipt as rawConsumeReceipt,
+  computeReceiptIntegrity,
   isExpired,
   isNonceConsumed,
   markNonceConsumed,
@@ -34,6 +35,34 @@ import {
   ExpiredApprovalViolation
 } from '../../scripts/lib/gates/errors.mjs';
 import { repoRoot } from '../helpers.mjs';
+
+const TEST_HEAD = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+function approveReceipt(receipt, approvedBy) {
+  const pending = { ...receipt, status: APPROVAL_STATUSES.PENDING, integrity_hash: null };
+  pending.integrity_hash = computeReceiptIntegrity(pending);
+  return rawApproveReceipt(pending, approvedBy);
+}
+
+function consumeReceipt(receipt, context = {}) {
+  const normalized = { ...receipt, integrity_hash: null };
+  if (normalized.expiresAt && normalized.expiresAt !== normalized.expires_at) normalized.expires_at = normalized.expiresAt;
+  normalized.integrity_hash = computeReceiptIntegrity(normalized);
+  return rawConsumeReceipt(normalized, {
+    project_path: normalized.project_path,
+    repository_identity: normalized.repository_identity,
+    branch: context.gitBranch || context.branch || normalized.branch,
+    head: context.gitCommit || context.head || normalized.head,
+    phase: context.phase || normalized.phase,
+    action: context.action || normalized.action,
+    runtime: context.runtime || normalized.runtime,
+    risk_tier: context.riskTier || context.risk_tier || normalized.risk_tier,
+    scope: context.scope || normalized.scope,
+    allowMissingProject: true,
+    baseDir: process.cwd(),
+    ...context
+  });
+}
 
 const GATE_CLI = path.join(repoRoot, 'scripts', 'evaluate-gates.mjs');
 
@@ -63,7 +92,7 @@ describe('Approval Enforcement', () => {
       runtime: 'opencode',
       targetRoot: '/tmp/test-project',
       gitBranch: 'main',
-      gitCommit: 'abc123',
+      gitCommit: TEST_HEAD,
       riskTier: 'MEDIUM_REVIEW',
       scopePaths: ['src/', 'test/']
     });
@@ -100,7 +129,7 @@ describe('Approval Enforcement', () => {
       runtime: 'opencode',
       targetRoot: `/tmp/test-reuse-${Date.now()}`,
       gitBranch: 'main',
-      gitCommit: 'abc'
+      gitCommit: TEST_HEAD
     });
 
     const pending = { ...receipt, status: APPROVAL_STATUSES.PENDING };
@@ -131,7 +160,7 @@ describe('Approval Enforcement', () => {
       runtime: 'opencode',
       targetRoot: '/tmp/test-expired',
       gitBranch: 'main',
-      gitCommit: 'abc',
+      gitCommit: TEST_HEAD,
       expiresInMs: -1 // ensure past (avoids Date.now()==expiresAt race)
     });
 
@@ -156,7 +185,7 @@ describe('Approval Enforcement', () => {
       runtime: 'opencode',
       targetRoot: '/tmp/test-cross-action',
       gitBranch: 'main',
-      gitCommit: 'abc'
+      gitCommit: TEST_HEAD
     });
 
     const pending = { ...receipt, status: APPROVAL_STATUSES.PENDING };
@@ -179,7 +208,7 @@ describe('Approval Enforcement', () => {
       runtime: 'opencode',
       targetRoot: '/tmp/test-cross-branch',
       gitBranch: 'main',
-      gitCommit: 'abc'
+      gitCommit: TEST_HEAD
     });
 
     const pending = { ...receipt, status: APPROVAL_STATUSES.PENDING };
@@ -202,7 +231,7 @@ describe('Approval Enforcement', () => {
       runtime: 'opencode',
       targetRoot: `/tmp/test-nonce-${Date.now()}`,
       gitBranch: 'main',
-      gitCommit: 'abc'
+      gitCommit: TEST_HEAD
     });
 
     const nonce = receipt.nonce;
@@ -219,7 +248,7 @@ describe('Approval Enforcement', () => {
       runtime: 'opencode',
       targetRoot: `/tmp/test-nonce2-${Date.now()}`,
       gitBranch: 'main',
-      gitCommit: 'abc'
+      gitCommit: TEST_HEAD
     });
 
     const pending = { ...receipt, status: APPROVAL_STATUSES.PENDING };
@@ -240,7 +269,7 @@ describe('Approval Enforcement', () => {
       runtime: 'opencode',
       targetRoot: `/tmp/test-nonce3-${Date.now()}`,
       gitBranch: 'main',
-      gitCommit: 'abc'
+      gitCommit: TEST_HEAD
     });
 
     // Mark its nonce consumed in ledger
@@ -263,7 +292,7 @@ describe('Approval Enforcement', () => {
       runtime: 'opencode',
       targetRoot: '/tmp/test-runtime-mismatch',
       gitBranch: 'main',
-      gitCommit: 'abc'
+      gitCommit: TEST_HEAD
     });
 
     const pending = { ...receipt, status: APPROVAL_STATUSES.PENDING };
@@ -287,7 +316,7 @@ describe('Approval Enforcement', () => {
       runtime: 'opencode',
       targetRoot: '/tmp/test-denied',
       gitBranch: 'main',
-      gitCommit: 'abc'
+      gitCommit: TEST_HEAD
     });
 
     const pending = { ...receipt, status: APPROVAL_STATUSES.PENDING };
@@ -310,7 +339,7 @@ describe('Approval Enforcement', () => {
       runtime: 'opencode',
       targetRoot: '/tmp/test-expiry-cap',
       gitBranch: 'main',
-      gitCommit: 'abc',
+      gitCommit: TEST_HEAD,
       expiresInMs: 48 * 60 * 60 * 1000 // 48 hours
     });
     const expiryDate = new Date(receipt.expiresAt).getTime();
