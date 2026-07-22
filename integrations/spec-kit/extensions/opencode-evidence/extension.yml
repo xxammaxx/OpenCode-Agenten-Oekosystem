@@ -1,0 +1,82 @@
+schema_version: "1.0"
+
+extension:
+  id: opencode-evidence
+  name: "OpenCode Evidence Gates"
+  version: "0.1.0"
+  description: "Evidence-driven OpenCode commands backed by the runtime-neutral ecosystem kernel"
+  category: "quality"
+  effect: "read-write"
+  author: "xxammaxx"
+  repository: "https://github.com/xxammaxx/OpenCode-Agenten-Oekosystem"
+  license: "MIT"
+
+requires:
+  speckit_version: ">=0.13.0,<0.14.0"
+  tools:
+    - name: node
+      required: true
+
+provides:
+  commands:
+    - name: speckit.opencode-evidence.reality
+      file: commands/speckit.opencode-evidence.reality.md
+      description: "Refresh repository and runtime reality evidence"
+    - name: speckit.opencode-evidence.route
+      file: commands/speckit.opencode-evidence.route.md
+      description: "Route context level and risk tier"
+    - name: speckit.opencode-evidence.preflight
+      file: commands/speckit.opencode-evidence.preflight.md
+      description: "Run the authoritative kernel preflight"
+    - name: speckit.opencode-evidence.verify
+      file: commands/speckit.opencode-evidence.verify.md
+      description: "Compare verification contract and evidence"
+    - name: speckit.opencode-evidence.close
+      file: commands/speckit.opencode-evidence.close.md
+      description: "Produce an evidence-based close classification"
+    - name: speckit.opencode-evidence.bootstrap
+      file: commands/speckit.opencode-evidence.bootstrap.md
+      description: "Run project bootstrap in dry-run mode"
+    - name: speckit.opencode-evidence.runtime-smoke
+      file: commands/speckit.opencode-evidence.runtime-smoke.md
+      description: "Run a real OpenCode runtime smoke check"
+  config:
+    - name: opencode-evidence-config.yml
+      template: config-template.yml
+      description: "Local bridge and evidence configuration"
+      required: false
+
+hooks:
+  after_specify:
+    command: speckit.opencode-evidence.reality
+    optional: true
+    description: "Refresh reality evidence after specification"
+  after_plan:
+    command: speckit.opencode-evidence.route
+    optional: true
+    description: "Route risk and context after planning"
+  before_implement:
+    command: speckit.opencode-evidence.preflight
+    optional: true
+    prompt: "Run the authoritative kernel preflight before implementation?"
+    description: "Advisory hook; the safe-delivery workflow gate remains required"
+  after_implement:
+    command: speckit.opencode-evidence.verify
+    optional: true
+    description: "Verify evidence after implementation"
+
+config:
+  defaults:
+    bridge_root_env: OPENCODE_AGENT_ECOSYSTEM_ROOT
+    evidence_dir: docs/evidence
+    remote_ci: disabled
+    enforcement:
+      extension_hooks: advisory
+      workflow_shell_gate: required
+      runtime_kernel: authoritative
+
+tags:
+  - opencode
+  - evidence
+  - gates
+  - security

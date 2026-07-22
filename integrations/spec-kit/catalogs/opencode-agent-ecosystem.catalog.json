@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "catalog_url": "http://127.0.0.1:8765/opencode-agent-ecosystem.catalog.json",
+  "bundles": {
+    "opencode-agent-ecosystem": {
+      "id": "opencode-agent-ecosystem",
+      "name": "OpenCode Agent Ecosystem",
+      "version": "0.1.0",
+      "role": "safe-delivery",
+      "description": "Pinned Spec Kit components for the OpenCode Agent Ecosystem",
+      "author": "xxammaxx",
+      "license": "MIT",
+      "download_url": "http://127.0.0.1:8765/opencode-agent-ecosystem-0.1.0.zip",
+      "sha256": "sha256:b0d456992903a7be6363364be4cf701dafdf9b409d2bc1c2184ce2c1e428a335",
+      "requires": {
+        "speckit_version": ">=0.13.0,<0.14.0"
+      },
+      "provides": {
+        "extensions": 1,
+        "presets": 1,
+        "workflows": 1
+      },
+      "repository": "local-controlled-test-artifacts",
+      "tags": ["opencode", "safe-delivery", "evidence"],
+      "verified": true
+    }
+  }
+}

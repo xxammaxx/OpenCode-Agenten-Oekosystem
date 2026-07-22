@@ -1,0 +1,5 @@
+ docs/reports/spec-kit-integration-final-report.md | 15 +++--
+ integrations/spec-kit/README.md                   | 10 ++-
+ scripts/install-governance.mjs                    | 76 +++++++++++++++--------
+ test/install/resident-runtime.test.mjs            | 69 +++++++++++++++++---
+ 4 files changed, 128 insertions(+), 42 deletions(-)

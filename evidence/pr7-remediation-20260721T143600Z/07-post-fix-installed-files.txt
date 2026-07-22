@@ -1,0 +1,16 @@
+=== POST-FIX INSTALLED FILES ===
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/gates/approval.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/gates/classifications.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/gates/context-fingerprint.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/gates/decision.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/gates/errors.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/gates/evaluate-all.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/gates/evidence.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/gates/kernel.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/gates/policy.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/runtimes/contract.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/runtimes/generic.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/runtimes/hermes.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/runtimes/odysseus.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/runtimes/opencode.mjs
+/tmp/tmp.0Tu1cyI8Iu/.agent-governance/runtime/security/redaction.mjs

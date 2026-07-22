@@ -1,0 +1,37 @@
+schema_version: "1.0"
+
+bundle:
+  id: "opencode-agent-ecosystem"
+  name: "OpenCode Agent Ecosystem"
+  role: "safe-delivery"
+  version: "0.1.0"
+  description: "Pinned Spec Kit components for the OpenCode Agent Ecosystem"
+  author: "xxammaxx"
+  license: "MIT"
+
+requires:
+  speckit_version: ">=0.13.0,<0.14.0"
+
+integration:
+  id: opencode
+
+provides:
+  extensions:
+    - id: opencode-evidence
+      version: "0.1.0"
+      source: "https://github.com/xxammaxx/OpenCode-Agenten-Oekosystem"
+  presets:
+    - id: opencode-canonical-method
+      version: "0.1.0"
+      priority: 10
+      strategy: replace
+      source: "https://github.com/xxammaxx/OpenCode-Agenten-Oekosystem"
+  workflows:
+    - id: opencode-safe-delivery
+      version: "0.1.0"
+      source: "https://github.com/xxammaxx/OpenCode-Agenten-Oekosystem"
+
+tags:
+  - opencode
+  - safe-delivery
+  - evidence

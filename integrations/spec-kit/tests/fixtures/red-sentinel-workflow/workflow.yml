@@ -1,0 +1,22 @@
+schema_version: "1.0"
+workflow:
+  id: "red-sentinel"
+  name: "RED Sentinel"
+  version: "0.1.0"
+  author: "xxammaxx"
+  description: "Test-only workflow proving the kernel RED stop"
+  integration: "opencode"
+requires:
+  speckit_version: ">=0.13.0,<0.14.0"
+  integrations:
+    all: ["opencode"]
+steps:
+  - id: kernel-red
+    type: shell
+    run: "node .specify/extensions/opencode-evidence/scripts/run-bridge.mjs --phase before-implement --runtime opencode --action push --command 'git push --force origin main' --json"
+    output_format: json
+    timeout: 30
+  - id: must-not-run
+    type: shell
+    run: "node -e \"require('node:fs').writeFileSync('RED_SENTINEL_BYPASS', 'unexpected')\""
+    timeout: 30

@@ -1,0 +1,2 @@
+=== PRE-FIX RESIDENT RUNTIME IMPORT ===
+IMPORT FAILED: ERR_MODULE_NOT_FOUND Cannot find module '/tmp/tmp.8AYwlGQeWV/.agent-governance/runtime/security/redaction.mjs' imported from /tmp/tmp.8AYwlGQeWV/.agent-governance/runtime/runtimes/opencode.mjs

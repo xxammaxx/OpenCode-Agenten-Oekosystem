@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "extensions": {
+    "opencode-evidence": {
+      "name": "OpenCode Evidence",
+      "version": "0.1.0",
+      "description": "OpenCode governance evidence extension",
+      "author": "xxammaxx",
+      "license": "MIT",
+      "download_url": "http://127.0.0.1:8765/opencode-evidence-0.1.0.zip",
+      "sha256": "sha256:d835e2eb192b84c5ca5fe4f7c27ad38e07ac1de7d8e5d0dba7aa94f0feae5c79",
+      "requires": {
+        "speckit_version": ">=0.13.0,<0.14.0"
+      },
+      "tags": ["opencode", "evidence", "governance"]
+    }
+  }
+}

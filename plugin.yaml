@@ -1,0 +1,7 @@
+name: canonical-agent-governance
+version: "1.0.0"
+description: "Install and enforce the canonical working method with runtime gate evaluation in the active project."
+kind: standalone
+requires_env: []
+provides_tools: []
+provides_hooks: ["pre_tool_call"]

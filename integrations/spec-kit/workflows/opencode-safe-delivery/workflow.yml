@@ -1,0 +1,118 @@
+schema_version: "1.0"
+
+workflow:
+  id: "opencode-safe-delivery"
+  name: "OpenCode Safe Delivery"
+  version: "0.1.0"
+  author: "xxammaxx"
+  description: "Evidence-gated Spec-Driven Delivery with authoritative kernel preflight"
+  integration: "opencode"
+
+requires:
+  speckit_version: ">=0.13.0,<0.14.0"
+  integrations:
+    all:
+      - "opencode"
+
+inputs:
+  spec:
+    type: string
+    required: true
+    prompt: "Feature or change description"
+
+steps:
+  - id: reality-refresh
+    type: shell
+    run: "node .specify/extensions/opencode-evidence/scripts/run-bridge.mjs --phase reality --runtime opencode --json"
+    output_format: json
+    timeout: 30
+
+  - id: risk-route
+    type: shell
+    run: "node .specify/extensions/opencode-evidence/scripts/run-bridge.mjs --phase route --runtime opencode --json"
+    output_format: json
+    timeout: 30
+
+  - id: verification-contract
+    type: gate
+    message: "Review the Verification Contract and required evidence before planning."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: kernel-preflight
+    type: shell
+    run: "node .specify/extensions/opencode-evidence/scripts/run-bridge.mjs --phase before-implement --runtime opencode --json"
+    output_format: json
+    timeout: 30
+
+  - id: human-approval
+    type: gate
+    message: "Owner approval is required before implementation."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: specify
+    command: speckit.specify
+    integration: opencode
+    input:
+      args: "{{ inputs.spec }}"
+
+  - id: clarify
+    command: speckit.clarify
+    integration: opencode
+    input:
+      args: "{{ inputs.spec }}"
+
+  - id: plan
+    command: speckit.plan
+    integration: opencode
+    input:
+      args: "{{ inputs.spec }}"
+
+  - id: tasks
+    command: speckit.tasks
+    integration: opencode
+    input:
+      args: "{{ inputs.spec }}"
+
+  - id: implement
+    command: speckit.implement
+    integration: opencode
+    input:
+      args: "{{ inputs.spec }}"
+
+  - id: verify
+    type: shell
+    run: "node .specify/extensions/opencode-evidence/scripts/run-bridge.mjs --phase verify --runtime opencode --json"
+    output_format: json
+    timeout: 30
+
+  - id: security-review
+    type: gate
+    message: "Confirm Security-Agent review evidence exists before close."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: compliance-review
+    type: gate
+    message: "Confirm Compliance-Agent review evidence exists before close."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: runtime-smoke
+    type: shell
+    run: "node .specify/extensions/opencode-evidence/scripts/run-bridge.mjs --phase runtime-smoke --runtime opencode --json"
+    output_format: json
+    timeout: 30
+
+  - id: independent-review
+    type: gate
+    message: "Confirm independent reviewer result before evidence close."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: evidence-close
+    type: shell
+    run: "node .specify/extensions/opencode-evidence/scripts/run-bridge.mjs --phase close --runtime opencode --json"
+    output_format: json
+    timeout: 30

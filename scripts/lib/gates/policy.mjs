@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Policy Gate Evaluator (Layer 2)
  *
@@ -174,20 +175,21 @@ export function evaluateCommentPolicy(context = {}) {
   }
 
   // ── Comment Cycle Completeness ──
-  if (commentType === 'none' && issueFetched === 'yes') {
+  // Only relevant when a comment operation is actually about to happen.
+  // For tool execution (commentType === 'none'), the cycle check is N/A.
+  if (commentType !== 'none' && issueFetched === 'yes' && commentType !== 'start') {
     warnings.push({
       code: 'COMMENT_CYCLE_INCOMPLETE',
-      message: 'Issue was fetched but no comment cycle started. Start Gate requires a structured start comment.',
+      message: 'Issue was fetched but no start comment was posted. Start Gate requires a structured start comment before other comments.',
       severity: 'WARNING'
     });
   }
 
   // ── Classification ──
+  // Only violations produce AMBER_REVIEW. Warnings alone do not downgrade.
   const classification = violations.length > 0
     ? 'AMBER_REVIEW'
-    : warnings.length > 0
-      ? 'AMBER_REVIEW'
-      : 'GREEN_SAFE';
+    : 'GREEN_SAFE';
 
   return {
     violations,

@@ -1,0 +1,8 @@
+schema_version: "1.0"
+bridge_root_env: OPENCODE_AGENT_ECOSYSTEM_ROOT
+evidence_dir: docs/evidence
+remote_ci: disabled
+enforcement:
+  extension_hooks: advisory
+  workflow_shell_gate: required
+  runtime_kernel: authoritative

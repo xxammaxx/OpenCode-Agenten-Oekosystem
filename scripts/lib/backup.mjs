@@ -47,20 +47,57 @@ export async function createBackup({ targetRoot, files, backupRoot }) {
     if (stat.isSymbolicLink()) {
       throw new Error(`Refusing to back up symlinked path: ${absolute}`)
     }
-    if (!stat.isFile()) {
-      throw new Error(`Refusing to back up non-file path: ${absolute}`)
-    }
 
-    const rel = relativePath(root, absolute)
-    const destination = path.join(backupDir, rel)
-    await copyFile(absolute, destination)
-    manifest.files.push({
-      path: rel,
-      existed: true,
-      backup_path: relativePath(backupDir, destination),
-      sha256: await fileHash(absolute),
-      size: stat.size,
-    })
+    if (stat.isDirectory()) {
+      // Recursively backup directory contents
+      const entries = await fs.readdir(absolute, { withFileTypes: true })
+      for (const entry of entries) {
+        if (entry.name.startsWith('.')) continue // skip hidden files/dirs
+        const subPath = path.join(absolute, entry.name)
+        const subStat = await fs.lstat(subPath)
+        if (subStat.isSymbolicLink()) {
+          continue // skip symlinks in directory trees
+        }
+        if (subStat.isFile()) {
+          const subRel = relativePath(root, subPath)
+          const subDest = path.join(backupDir, subRel)
+          await ensureParentDirectory(subDest)
+          await copyFile(subPath, subDest)
+          manifest.files.push({
+            path: subRel,
+            existed: true,
+            backup_path: relativePath(backupDir, subDest),
+            sha256: await fileHash(subPath),
+            size: subStat.size,
+          })
+        }
+      }
+      // Add the directory itself as an entry for tracking
+      manifest.files.push({
+        path: relativePath(root, absolute),
+        existed: true,
+        is_directory: true,
+      })
+    } else if (stat.isFile()) {
+      const rel = relativePath(root, absolute)
+      const destination = path.join(backupDir, rel)
+      await copyFile(absolute, destination)
+      manifest.files.push({
+        path: rel,
+        existed: true,
+        backup_path: relativePath(backupDir, destination),
+        sha256: await fileHash(absolute),
+        size: stat.size,
+      })
+    } else {
+      // Other types (e.g., sockets, devices) — skip
+      manifest.files.push({
+        path: relativePath(root, absolute),
+        existed: true,
+        skipped: true,
+        type: 'non-file-non-directory',
+      })
+    }
   }
 
   await fs.writeFile(path.join(backupDir, "backup-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8")

@@ -12,6 +12,7 @@ import { ensureDirectory, ensureParentDirectory, pathExists, readTextIfExists, w
 import { renderDiscoveryMarkdown, renderPlanMarkdown, writeJsonReport, writeMarkdownReport } from "./lib/report.mjs"
 import { selectMcpCandidates } from "./lib/mcp.mjs"
 import { mergeDeep } from "./lib/merge.mjs"
+import { safeRedactText, secretValuesFromEnv } from "./lib/security/redaction.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -25,7 +26,7 @@ if (args.help) {
 }
 
 await main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error))
+  console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
   process.exitCode = 1
 })
 

@@ -1,0 +1,16 @@
+=== POST-FIX TEST SUITE ===
+    1..5
+ok 72 - evidence-gates.json
+  ---
+  duration_ms: 1.804596
+  type: 'suite'
+  ...
+1..72
+# tests 388
+# suites 44
+# pass 388
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3535.190323

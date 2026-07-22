@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0.0",
+  "name": "canonical-agent-governance",
+  "description": "Universal governance installer — enables AI agents to install agent-governance from a repository URL into any target project.",
+  "entrypoint": "scripts/install-governance.mjs",
+  "default_target": "invoking_working_directory",
+  "default_mode": "dry-run",
+  "apply_flag": "--apply",
+  "rollback_flag": "--rollback",
+  "requires": {
+    "git": true,
+    "node": ">=20"
+  },
+  "supported_runtimes": ["opencode", "hermes", "odysseus", "generic"],
+  "supported_os": ["linux", "macos", "windows-powershell", "windows-git-bash", "wsl"],
+  "classification_states": [
+    "GREEN_SAFE",
+    "AMBER_REVIEW",
+    "RED_BLOCK",
+    "TOOL_GAP"
+  ],
+  "governance_root": ".agent-governance",
+  "runtime_dir": ".agent-governance/runtime",
+  "policies_dir": ".agent-governance/policies",
+  "bin_dir": ".agent-governance/bin",
+  "install_artifacts": {
+    "runtime": [
+      "evaluate-all.mjs",
+      "kernel.mjs",
+      "policy.mjs",
+      "decision.mjs",
+      "approval.mjs",
+      "evidence.mjs",
+      "classifications.mjs",
+      "errors.mjs",
+      "context-fingerprint.mjs",
+      "contract.mjs",
+      "generic.mjs",
+      "opencode.mjs",
+      "hermes.mjs",
+      "odysseus.mjs"
+    ],
+    "config": [
+      "manifest.json",
+      "source-lock.json"
+    ],
+    "bin": [
+      "evaluate.mjs"
+    ],
+    "hooks": {
+      "opencode": ".agent-governance/hooks/opencode/pre-evaluate.mjs",
+      "hermes": ".hermes/governance/evaluate.mjs"
+    }
+  },
+  "enforcement_levels": {
+    "HOOK_ENFORCED": "Runtime-specific pre-action hooks intercept and evaluate all operations",
+    "STRUCTURAL_ONLY": "Runtime detected but no hook support — structural validation only",
+    "ADVISORY_ONLY": "No specific runtime detected — governance is advisory, kernel gates still apply"
+  },
+  "kernel_gates": 19,
+  "conflict_strategy": "conservative_merge",
+  "backup_required": true,
+  "fail_closed": true,
+  "exit_codes": {
+    "0": "GREEN_SAFE",
+    "1": "AMBER_REVIEW or TOOL_GAP",
+    "2": "RED_BLOCK"
+  }
+}

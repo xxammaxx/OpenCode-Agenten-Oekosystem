@@ -13,6 +13,7 @@ import {
   copyFile,
 } from "./lib/paths.mjs"
 import { createBackup, restoreBackup } from "./lib/backup.mjs"
+import { safeRedactText, secretValuesFromEnv } from "./lib/security/redaction.mjs"
 
 // ---------------------------------------------------------------------------
 // Directory skip list (mirrors discovery.mjs and validate-ecosystem.mjs)
@@ -52,13 +53,17 @@ if (args.rollback) {
 
 if (args.dryRun) {
   await dryRun()
+  // Drain stdout before exit: when stdout is piped (not a TTY),
+  // Node.js buffers output; process.exit() would discard pending
+  // data. write("") with a callback forces the buffer to flush.
+  await new Promise((resolve) => process.stdout.write("", resolve))
   process.exit(0)
 }
 
 try {
   await install()
 } catch (error) {
-  console.error(error instanceof Error ? error.message : String(error))
+  console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
   process.exit(1)
 }
 

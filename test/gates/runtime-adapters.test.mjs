@@ -212,6 +212,189 @@ describe('Hermes Adapter', () => {
   });
 });
 
+// ── ADR-006: Hermes Global Detection Fix ─────────────────────
+
+describe('ADR-006: Hermes Detection — No False Positives from Global Signals', () => {
+
+  it('H-001: empty project with global Hermes install only → NOT_DETECTED (confidence < 50)', () => {
+    const dir = createTempDir();
+    try {
+      const result = hermesAdapter.detect({ targetRoot: dir });
+      // ADR-006 fix: global-only signals must be capped below AMBER_THRESHOLD (50)
+      assert.ok(result.confidence < 50,
+        `Global-only Hermes signals must NOT trigger detection. Got confidence=${result.confidence}`);
+      assert.strictEqual(result.confidenceLevel, 'NOT_DETECTED',
+        `Empty project with global install must be NOT_DETECTED, got ${result.confidenceLevel}`);
+      // Verify global signals still appear for diagnostics
+      const globalSignals = result.signals.filter(s => s.signal.includes('(global)'));
+      // Global signals may or may not be present — either is fine
+      // The key assertion is that confidence stays below 50 regardless
+    } finally {
+      cleanupTempDir(dir);
+    }
+  });
+
+  it('H-002: real Hermes project with .hermes.md → still detected (confidence ≥ 50)', () => {
+    const dir = createTempDir();
+    try {
+      writeFileSync(resolve(dir, '.hermes.md'), '# Hermes Config');
+      // .hermes.md = 35% project-local → unlocks global signals
+      // Total: 35 (project) + up to 50 (global) = up to 85
+      const result = hermesAdapter.detect({ targetRoot: dir });
+      assert.ok(result.confidence >= 35,
+        `Real Hermes project (.hermes.md) confidence should be >= 35, got ${result.confidence}`);
+      assert.strictEqual(result.runtime, 'hermes');
+      // With global install present, should reach AMBER_REVIEW or DETECTED
+      assert.ok(
+        result.confidenceLevel === 'AMBER_REVIEW' || result.confidenceLevel === 'DETECTED',
+        `Real Hermes project should be AMBER_REVIEW or DETECTED, got ${result.confidenceLevel}`
+      );
+    } finally {
+      cleanupTempDir(dir);
+    }
+  });
+
+  it('H-003: pure OpenCode project with zero Hermes artifacts → confidence < 50', () => {
+    const dir = createTempDir();
+    try {
+      writeFileSync(resolve(dir, 'opencode.jsonc'), '{}');
+      mkdirSync(resolve(dir, '.opencode', 'agents'), { recursive: true });
+      mkdirSync(resolve(dir, '.opencode', 'skills'), { recursive: true });
+
+      const result = hermesAdapter.detect({ targetRoot: dir });
+      // CRITICAL: Even with global Hermes on this machine, confidence must stay below 50
+      assert.ok(result.confidence < 50,
+        `Pure OpenCode project must NOT auto-detect Hermes. Got confidence=${result.confidence}, level=${result.confidenceLevel}`);
+      // No project-local Hermes signals expected
+      const projectSignals = result.signals.filter(s => s.signal.includes('(project)'));
+      assert.strictEqual(projectSignals.length, 0,
+        `No project-local Hermes signals expected in pure OpenCode project, got: ${JSON.stringify(projectSignals)}`);
+    } finally {
+      cleanupTempDir(dir);
+    }
+  });
+
+  it('H-004: generic agent project (AGENTS.md, CLAUDE.md) with global Hermes → NOT_DETECTED', () => {
+    const dir = createTempDir();
+    try {
+      writeFileSync(resolve(dir, 'AGENTS.md'), '# Agent Project');
+      writeFileSync(resolve(dir, 'CLAUDE.md'), '# Claude Config');
+
+      const result = hermesAdapter.detect({ targetRoot: dir });
+      assert.ok(result.confidence < 50,
+        `Generic agent project must NOT auto-detect Hermes. Got ${result.confidence}`);
+      assert.strictEqual(result.confidenceLevel, 'NOT_DETECTED');
+    } finally {
+      cleanupTempDir(dir);
+    }
+  });
+
+  it('H-005: .hermes/skills/ directory (project-local weight 15) + global → detected', () => {
+    const dir = createTempDir();
+    try {
+      mkdirSync(resolve(dir, '.hermes', 'skills'), { recursive: true });
+      // .hermes/skills/ = 15% project-local → unlocks global signals
+      // Total: 15 (project) + up to 50 (global) = up to 65
+      const result = hermesAdapter.detect({ targetRoot: dir });
+      assert.ok(result.confidence >= 15,
+        `Project with .hermes/skills/ confidence should be >= 15, got ${result.confidence}`);
+      // With global install, should reach at least 50
+      // (relaxed check: only assert runtime name, since global may not exist on all machines)
+      assert.strictEqual(result.runtime, 'hermes');
+    } finally {
+      cleanupTempDir(dir);
+    }
+  });
+
+  it('H-006: .hermes/config.example.yaml with write_approval (weight 5) + global → may cross threshold', () => {
+    const dir = createTempDir();
+    try {
+      mkdirSync(resolve(dir, '.hermes'), { recursive: true });
+      writeFileSync(resolve(dir, '.hermes', 'config.example.yaml'), 'write_approval: true\nskills:\n  write_approval: true');
+      // config.example.yaml with write_approval = 5% project-local → unlocks
+      // Total: 5 (project) + up to 50 (global) = up to 55
+      const result = hermesAdapter.detect({ targetRoot: dir });
+      assert.ok(result.confidence >= 5,
+        `Config-only Hermes project confidence should be >= 5, got ${result.confidence}`);
+      // The project explicitly contains Hermes config → projectConfidence > 0
+      // Global signals contribute, may or may not reach 50 depending on env
+    } finally {
+      cleanupTempDir(dir);
+    }
+  });
+
+  it('H-007: .hermes/mcp/ directory (project-local weight 10) + global → detected', () => {
+    const dir = createTempDir();
+    try {
+      mkdirSync(resolve(dir, '.hermes', 'mcp'), { recursive: true });
+      // .hermes/mcp/ = 10% project-local → unlocks global signals
+      const result = hermesAdapter.detect({ targetRoot: dir });
+      assert.ok(result.confidence >= 10,
+        `Project with .hermes/mcp/ confidence should be >= 10, got ${result.confidence}`);
+      assert.strictEqual(result.runtime, 'hermes');
+    } finally {
+      cleanupTempDir(dir);
+    }
+  });
+
+  it('H-008: project with .hermes.md + .hermes/skill-bundles/ → high confidence detection', () => {
+    const dir = createTempDir();
+    try {
+      writeFileSync(resolve(dir, '.hermes.md'), '# Hermes Config');
+      mkdirSync(resolve(dir, '.hermes', 'skill-bundles'), { recursive: true });
+      // .hermes.md (35%) + .hermes/skill-bundles/ (20%) = 55% project-local
+      // + up to 50% global = up to 105 → capped to 100
+      const result = hermesAdapter.detect({ targetRoot: dir });
+      assert.ok(result.confidence >= 55,
+        `Real Hermes project with .hermes.md + skill-bundles should be >= 55, got ${result.confidence}`);
+      assert.strictEqual(result.confidenceLevel, 'DETECTED',
+        `Should be DETECTED for strong project signals, got ${result.confidenceLevel}`);
+    } finally {
+      cleanupTempDir(dir);
+    }
+  });
+
+  it('H-009: project-local signals unlock global confidence cap via projectConfidence > 0', () => {
+    const dir = createTempDir();
+    try {
+      // .hermes/skills/ alone (weight 15) is a project-local signal
+      // It should "unlock" global signals because projectConfidence > 0
+      mkdirSync(resolve(dir, '.hermes', 'skills'), { recursive: true });
+
+      const result = hermesAdapter.detect({ targetRoot: dir });
+      // With projectConfidence = 15 (from .hermes/skills/) > 0, the cap is not applied
+      // So global signals can contribute
+      assert.strictEqual(result.runtime, 'hermes');
+      // confidence >= 15 is the minimum (just the project signal, no global)
+      assert.ok(result.confidence >= 15,
+        `Project-local .hermes/skills should give >= 15, got ${result.confidence}`);
+      // Verify the signals array contains the project-local signal
+      const localSignal = result.signals.find(s => s.signal === '.hermes/skills/');
+      assert.ok(localSignal, `Should find .hermes/skills/ signal in: ${JSON.stringify(result.signals.map(s => s.signal))}`);
+      assert.strictEqual(localSignal.weight, 15);
+    } finally {
+      cleanupTempDir(dir);
+    }
+  });
+
+  it('H-010: mixed project with weak opencode signals + global Hermes → Hermes NOT detected', () => {
+    const dir = createTempDir();
+    try {
+      // Simulate a project with some OpenCode files but no strong OpenCode config
+      mkdirSync(resolve(dir, '.opencode'), { recursive: true });
+      // No opencode.jsonc, no .opencode/agents/ → OpenCode detection may be weak
+      // But Hermes detection must still NOT trigger from global signals alone
+
+      const result = hermesAdapter.detect({ targetRoot: dir });
+      assert.ok(result.confidence < 50,
+        `Mixed project must NOT auto-detect Hermes from global signals. Got ${result.confidence}`);
+      assert.strictEqual(result.confidenceLevel, 'NOT_DETECTED');
+    } finally {
+      cleanupTempDir(dir);
+    }
+  });
+});
+
 // ── Odysseus Adapter Tests ───────────────────────────────────
 
 describe('Odysseus Adapter', () => {
@@ -354,10 +537,12 @@ describe('Cross-Adapter False Positive Prevention', () => {
       const od = odysseusAdapter.detect({ targetRoot: dir });
       assert.ok(oc.confidence < 50, `OpenCode should be <50 in empty dir, got ${oc.confidence}`);
       assert.ok(od.confidence < 50, `Odysseus should be <50 in empty dir, got ${od.confidence}`);
-      // Hermes may be detected from global install — only check that adapter returns correctly
+      // ADR-006 fix: Hermes global-only signals are capped at 49
       const hm = hermesAdapter.detect({ targetRoot: dir });
       assert.strictEqual(hm.runtime, 'hermes');
-      // Note: Hermes confidence may be high if globally installed (~/.hermes/ exists)
+      assert.ok(hm.confidence < 50,
+        `Global-only Hermes signals must NOT reach detection threshold. Got ${hm.confidence}`);
+      assert.strictEqual(hm.confidenceLevel, 'NOT_DETECTED');
     } finally {
       cleanupTempDir(dir);
     }

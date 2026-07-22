@@ -15,9 +15,10 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import {
   createApprovalReceipt,
-  approveReceipt,
+  approveReceipt as rawApproveReceipt,
   denyReceipt,
-  consumeReceipt,
+  consumeReceipt as rawConsumeReceipt,
+  computeReceiptIntegrity,
   isExpired,
   validateReceiptStructure,
   markNonceConsumed,
@@ -33,6 +34,37 @@ import {
   ExpiredApprovalViolation
 } from '../../scripts/lib/gates/errors.mjs';
 
+const TEST_HEAD = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+// Legacy fixtures in this file model lifecycle transitions with object spread.
+// Normalize those fixtures before calling the strict closure implementation;
+// the closure-specific tests exercise the raw API without this adapter.
+function approveReceipt(receipt, approvedBy) {
+  const pending = { ...receipt, status: APPROVAL_STATUSES.PENDING, integrity_hash: null };
+  pending.integrity_hash = computeReceiptIntegrity(pending);
+  return rawApproveReceipt(pending, approvedBy);
+}
+
+function consumeReceipt(receipt, context = {}) {
+  const normalized = { ...receipt, integrity_hash: null };
+  if (normalized.expiresAt && normalized.expiresAt !== normalized.expires_at) normalized.expires_at = normalized.expiresAt;
+  normalized.integrity_hash = computeReceiptIntegrity(normalized);
+  return rawConsumeReceipt(normalized, {
+    project_path: normalized.project_path,
+    repository_identity: normalized.repository_identity,
+    branch: context.gitBranch || context.branch || normalized.branch,
+    head: context.gitCommit || context.head || normalized.head,
+    phase: context.phase || normalized.phase,
+    action: context.action || normalized.action,
+    runtime: context.runtime || normalized.runtime,
+    risk_tier: context.riskTier || context.risk_tier || normalized.risk_tier,
+    scope: context.scope || normalized.scope,
+    allowMissingProject: true,
+    baseDir: process.cwd(),
+    ...context
+  });
+}
+
 describe('Approval Receipts', () => {
 
   // ── Creation ───────────────────────────────────────────────
@@ -43,7 +75,7 @@ describe('Approval Receipts', () => {
       runtime: 'opencode',
       targetRoot: '/tmp/test-project',
       gitBranch: 'main',
-      gitCommit: 'abc123',
+      gitCommit: TEST_HEAD,
       riskTier: 'MEDIUM_REVIEW',
       scopePaths: ['src/', 'test/']
     });
@@ -77,7 +109,7 @@ describe('Approval Receipts', () => {
       runtime: 'opencode',
       targetRoot: '/tmp/test',
       gitBranch: 'main',
-      gitCommit: 'abc'
+      gitCommit: TEST_HEAD
     });
 
     // First make it PENDING (NOT_REQUESTED → PENDING)
@@ -91,7 +123,7 @@ describe('Approval Receipts', () => {
   it('denies a receipt', () => {
     const receipt = { ...createApprovalReceipt({
       action: 'push', runtime: 'opencode', targetRoot: '/tmp/test',
-      gitBranch: 'main', gitCommit: 'abc'
+        gitBranch: 'main', gitCommit: TEST_HEAD
     }), status: APPROVAL_STATUSES.PENDING };
 
     const denied = denyReceipt(receipt);
@@ -103,7 +135,7 @@ describe('Approval Receipts', () => {
     const receipt = {
       ...createApprovalReceipt({
         action: 'push', runtime: 'opencode', targetRoot: '/tmp/test',
-        gitBranch: 'main', gitCommit: 'abc'
+        gitBranch: 'main', gitCommit: TEST_HEAD
       }),
       status: APPROVAL_STATUSES.APPROVED,
       expiresAt: new Date(now + 3600000).toISOString()
@@ -126,7 +158,7 @@ describe('Approval Receipts', () => {
     const receipt = {
       ...createApprovalReceipt({
         action: 'push', runtime: 'opencode', targetRoot: '/tmp/test',
-        gitBranch: 'main', gitCommit: 'abc'
+        gitBranch: 'main', gitCommit: TEST_HEAD
       }),
       status: APPROVAL_STATUSES.CONSUMED,
       expiresAt: new Date(now + 3600000).toISOString()
@@ -144,7 +176,7 @@ describe('Approval Receipts', () => {
     const receipt = {
       ...createApprovalReceipt({
         action: 'push', runtime: 'opencode', targetRoot: '/tmp/test',
-        gitBranch: 'main', gitCommit: 'abc'
+        gitBranch: 'main', gitCommit: TEST_HEAD
       }),
       status: APPROVAL_STATUSES.APPROVED,
       expiresAt: new Date(now + 3600000).toISOString()
@@ -167,7 +199,7 @@ describe('Approval Receipts', () => {
     const receipt = {
       ...createApprovalReceipt({
         action: 'push', runtime: 'opencode', targetRoot: '/tmp/test',
-        gitBranch: 'main', gitCommit: 'abc'
+        gitBranch: 'main', gitCommit: TEST_HEAD
       }),
       status: APPROVAL_STATUSES.APPROVED,
       expiresAt: new Date(now + 3600000).toISOString()
@@ -183,7 +215,7 @@ describe('Approval Receipts', () => {
     const receipt = {
       ...createApprovalReceipt({
         action: 'push', runtime: 'opencode', targetRoot: '/tmp/test',
-        gitBranch: 'main', gitCommit: 'abc'
+        gitBranch: 'main', gitCommit: TEST_HEAD
       }),
       status: APPROVAL_STATUSES.APPROVED,
       expiresAt: new Date(now + 3600000).toISOString()
@@ -201,7 +233,7 @@ describe('Approval Receipts', () => {
     const receipt = {
       ...createApprovalReceipt({
         action: 'push', runtime: 'opencode', targetRoot: '/tmp/test',
-        gitBranch: 'main', gitCommit: 'abc'
+        gitBranch: 'main', gitCommit: TEST_HEAD, expiresInMs: -1
       }),
       status: APPROVAL_STATUSES.APPROVED,
       expiresAt: past
@@ -238,9 +270,9 @@ describe('Approval Receipts', () => {
   it('accepts valid receipt', () => {
     const receipt = createApprovalReceipt({
       action: 'push', runtime: 'opencode', targetRoot: '/tmp/test',
-      gitBranch: 'main', gitCommit: 'abc'
+        gitBranch: 'main', gitCommit: TEST_HEAD
     });
-    const issues = validateReceiptStructure({ ...receipt, status: APPROVAL_STATUSES.APPROVED });
+    const issues = validateReceiptStructure(approveReceipt(receipt, 'owner'));
     assert.strictEqual(issues.length, 0, `Expected no issues, got: ${JSON.stringify(issues)}`);
   });
 
@@ -249,7 +281,7 @@ describe('Approval Receipts', () => {
   it('detects potential secrets in receipt', () => {
     const receipt = createApprovalReceipt({
       action: 'push', runtime: 'opencode', targetRoot: '/tmp/test',
-      gitBranch: 'main', gitCommit: 'abc'
+        gitBranch: 'main', gitCommit: TEST_HEAD
     });
     // Inject a secret-like field
     const tainted = { ...receipt, apiKey: 'sk-secret-12345' };
@@ -271,7 +303,7 @@ describe('Approval Receipts', () => {
   it('caps expiry at maximum 24 hours', () => {
     const receipt = createApprovalReceipt({
       action: 'push', runtime: 'opencode', targetRoot: '/tmp/test',
-      gitBranch: 'main', gitCommit: 'abc',
+      gitBranch: 'main', gitCommit: TEST_HEAD,
       expiresInMs: 48 * 60 * 60 * 1000 // 48 hours
     });
     const expiryDate = new Date(receipt.expiresAt).getTime();

@@ -2,16 +2,18 @@
 
 import path from "node:path"
 import fs from "node:fs/promises"
+import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import { loadManifest, validateManifest } from "./lib/manifest.mjs"
 import { extractFrontmatter, validateAgentFrontmatter, validateSkillFrontmatter } from "./lib/frontmatter.mjs"
 import { parseJsonc } from "./lib/jsonc.mjs"
 import { pathExists, readTextIfExists, toAbsolutePath, normalizePosix } from "./lib/paths.mjs"
+import { safeRedactText, secretValuesFromEnv } from "./lib/security/redaction.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
 await main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error))
+  console.error(safeRedactText(error instanceof Error ? error.message : String(error), { secrets: secretValuesFromEnv() }))
   process.exitCode = 2
 })
 
@@ -172,6 +174,14 @@ async function main() {
 
   // Domain decoupling — data-retention in domain_specific
   issues.push(...await validateDataRetentionDomainSpecific(manifest))
+
+  // Test suite gate — GREEN_SAFE requires all tests passing
+  const testResult = runTestSuite()
+  if (testResult.status === "FAILED") {
+    issues.push(testResult.message)
+  } else if (testResult.status === "UNAVAILABLE") {
+    warnings.push(testResult.message)
+  }
 
   const status = issues.length > 0 ? "RED_BLOCK" : warnings.filter(Boolean).length > 0 ? "AMBER_REVIEW" : "GREEN_SAFE"
   console.log(status)
@@ -754,4 +764,52 @@ async function collectTextFiles(root) {
   }
   await walk(root)
   return files
+}
+
+/**
+ * Run the test suite and return status.
+ * GREEN_SAFE classification requires all tests passing.
+ * Test failures produce a RED_BLOCK issue (not just a warning) because
+ * a green validator with red tests is a false signal.
+ */
+function runTestSuite() {
+  try {
+    const result = spawnSync("node", ["--test", "--test-reporter=spec"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      timeout: 120000,
+      stdio: "pipe",
+    })
+
+    // Parse test summary
+    const output = result.stdout + result.stderr
+    const passMatch = output.match(/ℹ pass (\d+)/)
+    const failMatch = output.match(/ℹ fail (\d+)/)
+    const testsMatch = output.match(/ℹ tests (\d+)/)
+
+    const passCount = passMatch ? parseInt(passMatch[1], 10) : 0
+    const failCount = failMatch ? parseInt(failMatch[1], 10) : 0
+    const totalCount = testsMatch ? parseInt(testsMatch[1], 10) : 0
+
+    if (result.status !== 0 || failCount > 0) {
+      return {
+        status: "FAILED",
+        message: `TEST_SUITE_FAILED: ${passCount}/${totalCount} tests passed, ${failCount} failed (exit code ${result.status})`
+      }
+    }
+
+    if (result.error) {
+      return {
+        status: "UNAVAILABLE",
+        message: `TEST_SUITE_UNAVAILABLE: could not execute tests (${result.error.message})`
+      }
+    }
+
+    return { status: "PASSED" }
+  } catch (error) {
+    return {
+      status: "UNAVAILABLE",
+      message: `TEST_SUITE_UNAVAILABLE: ${error instanceof Error ? error.message : String(error)}`
+    }
+  }
 }
