@@ -265,25 +265,27 @@ Dies ist der verbindliche Ablauf für jeden Task ab Risk Tier MEDIUM_REVIEW. Fü
 flowchart TD
     A[1. OS/Shell/Runtime/Tool Pre-Flight] --> B[2. Reality Refresh]
     B --> C[3. Context Manifest]
-    C --> D[4. Research]
-    D --> E[5. Planning]
-    E --> F[6. Architecture]
-    F --> G[7. Security]
-    G --> H[8. Compliance]
-    H --> I[9. Verification Contract]
-    I --> J[10. Red Tests]
-    J --> K[11. Owner Approval]
-    K --> L[12. Implementation]
-    L --> M[13. Local Validation]
-    M --> N[14. Reality Gate]
-    N --> O[15. Living Truth Mirror]
-    O --> P[16. Reviewer]
-    P --> Q[17. Evidence-Abschluss]
-    Q --> R[18. Commit Gate]
-    R --> S[19. Push Gate]
-    S --> T[20. PR Gate]
-    T --> U[21. Merge Gate]
-    U --> V[22. Deployment Gate]
+    C --> C1[4. Run Card]
+    C1 --> C2[5. Risk Tier Assessment]
+    C2 --> D[6. Research]
+    D --> E[7. Planning]
+    E --> F[8. Architecture]
+    F --> G[9. Security]
+    G --> H[10. Compliance]
+    H --> I[11. Verification Contract]
+    I --> J[12. Red-Test Creation and Execution]
+    J --> K[13. Owner Approval / WARM to HOT]
+    K --> L[14. Implementation]
+    L --> M[15. Local Validation]
+    M --> N[16. Reality Gate]
+    N --> O[17. Living Truth Mirror]
+    O --> P[18. Reviewer]
+    P --> Q[19. Evidence-Abschluss]
+    Q --> R[20. Commit Gate]
+    R --> S[21. Push Gate]
+    S --> T[22. PR Gate]
+    T --> U[23. Merge Gate]
+    U --> V[24. Deployment Gate]
 ```
 
 ### Step Details
@@ -292,26 +294,28 @@ flowchart TD
 |---|------|-------------|--------|
 | 1 | **OS/Shell/Runtime/Tool Pre-Flight** | OS erkennen, verfügbare Shell, Node/Python/andere Runtimes, MCP-Tools, Git-Status. Keine Behauptungen ohne Discovery. | Tool-Manifest |
 | 2 | **Reality Refresh** | `git fetch --all --prune` (bei GitHub), `git status`, `git diff --stat`, uncommitted changes erfassen. | Reality-Bericht |
-| 3 | **Context Manifest** | Risk Tier bestimmen, Context Level bestimmen, Source of Truth identifizieren, Hard Constraints dokumentieren. | Context Manifest |
-| 4 | **Research** | Externe Doku prüfen (APIs, SDKs, Provider, MCP), wenn relevant. Nicht aus dem Gedächtnis. | Research Notes |
-| 5 | **Planning** | Speckit-Workflow (Constitution → Specify → Plan → Tasks). Scope, Out-of-Scope, Non-Touch Areas. | Plan + Tasks |
-| 6 | **Architecture** | Betroffene Module, Schnittstellen, Datenfluss, ADR bei Bedarf. | Architecture Notes / ADR |
-| 7 | **Security** | Security-Review: Secrets, Auth, Input-Validation, MCP-Sicherheit, Vertrauensgrenzen. | Security Findings |
-| 8 | **Compliance** | Compliance-Review: DSGVO, Datenminimierung, Retention, Zweckbindung. | Compliance Findings |
-| 9 | **Verification Contract** | Gewünschtes Verhalten, Akzeptanzkriterien, Red Tests, Regressionstests, Reality Gate, Evidence-Typen. | Verification Contract |
-| 10 | **Red Tests** | Test schreiben, der das gewünschte Verhalten zeigt und aktuell fehlschlägt (RED). | Red Test Output |
-| 11 | **Owner Approval** | Approval für Risk Tier und Implementation einholen. | Approval Status |
-| 12 | **Implementation** | Änderungen gemäß Spec und Plan. Kleinste sinnvolle Änderung. | Git Diff |
-| 13 | **Local Validation** | Tests ausführen, Lint/Typecheck, manuelle Prüfungen. | Test Output |
-| 14 | **Reality Gate** | Prüfen, ob der tatsächliche Zustand dem erwarteten entspricht. Diff reviewen. | Reality Gate Report |
-| 15 | **Living Truth Mirror** | Dokumentation, Policies und ADRs bei Bedarf aktualisieren. | Updated Docs |
-| 16 | **Reviewer** | Review-Agent durchläuft Code, Security, Regression. | Review Report |
-| 17 | **Evidence-Abschluss** | Alle Evidence sammeln, Completion Classification bestimmen, Abschlussbericht. | Completion Report |
-| 18 | **Commit Gate** | Human Approval für Commit einholen. | Commit Gate Status |
-| 19 | **Push Gate** | Human Approval für Push einholen. | Push Gate Status |
-| 20 | **PR Gate** | Human Approval für PR-Erstellung einholen. | PR Gate Status |
-| 21 | **Merge Gate** | Human Approval für Merge einholen. | Merge Gate Status |
-| 22 | **Deployment Gate** | Human Approval für Deployment einholen. | Deploy Gate Status |
+| 3 | **Context Manifest** | Context Level bestimmen, Source of Truth identifizieren, Hard Constraints dokumentieren. | Context Manifest |
+| 4 | **Run Card** | Validierte Run Card mit Scope, Akzeptanzkriterien, Tests, Risiken und Rollback-Strategie erstellen. | Run Card |
+| 5 | **Risk Tier Assessment** | Risk Tier bestimmen (LOW_LOCAL / MEDIUM_REVIEW / HIGH_HUMAN_GATE / CRITICAL_BLOCK) und Workflow-Module auswählen. | Risk Tier |
+| 6 | **Research** | Externe Doku prüfen (APIs, SDKs, Provider, MCP), wenn relevant. Nicht aus dem Gedächtnis. | Research Notes |
+| 7 | **Planning** | Speckit-Workflow (Constitution → Specify → Plan → Tasks). Scope, Out-of-Scope, Non-Touch Areas. | Plan + Tasks |
+| 8 | **Architecture** | Betroffene Module, Schnittstellen, Datenfluss, ADR bei Bedarf. | Architecture Notes / ADR |
+| 9 | **Security** | Security-Review: Secrets, Auth, Input-Validation, MCP-Sicherheit, Vertrauensgrenzen. | Security Findings |
+| 10 | **Compliance** | Compliance-Review: DSGVO, Datenminimierung, Retention, Zweckbindung. | Compliance Findings |
+| 11 | **Verification Contract** | Gewünschtes Verhalten, Akzeptanzkriterien, Red Tests, Regressionstests, Reality Gate, Evidence-Typen. | Verification Contract |
+| 12 | **Red Tests** | Test schreiben, der das gewünschte Verhalten zeigt und aktuell fehlschlägt (RED). | Red Test Output |
+| 13 | **Owner Approval** | Approval für Risk Tier und Implementation einholen. | Approval Status |
+| 14 | **Implementation** | Änderungen gemäß Spec und Plan. Kleinste sinnvolle Änderung. | Git Diff |
+| 15 | **Local Validation** | Tests ausführen, Lint/Typecheck, manuelle Prüfungen. | Test Output |
+| 16 | **Reality Gate** | Prüfen, ob der tatsächliche Zustand dem erwarteten entspricht. Diff reviewen. | Reality Gate Report |
+| 17 | **Living Truth Mirror** | Dokumentation, Policies und ADRs bei Bedarf aktualisieren. | Updated Docs |
+| 18 | **Reviewer** | Review-Agent durchläuft Code, Security, Regression. | Review Report |
+| 19 | **Evidence-Abschluss** | Alle Evidence sammeln, Completion Classification bestimmen, Abschlussbericht. | Completion Report |
+| 20 | **Commit Gate** | Human Approval für Commit einholen. | Commit Gate Status |
+| 21 | **Push Gate** | Human Approval für Push einholen. | Push Gate Status |
+| 22 | **PR Gate** | Human Approval für PR-Erstellung einholen. | PR Gate Status |
+| 23 | **Merge Gate** | Human Approval für Merge einholen. | Merge Gate Status |
+| 24 | **Deployment Gate** | Human Approval für Deployment einholen. | Deploy Gate Status |
 
 ---
 
@@ -611,14 +615,14 @@ Die Security-Prüfung erfolgt immer **VOR** der Compliance-Prüfung.
 
 ### Ablauf
 
-1. Security Review (Schicht 7 der Execution Order)
+1. Security Review (Schicht 9 der Execution Order)
    - Secrets-Check: `.env`, API-Keys, Tokens, Passwörter in Logs/Code/Config
    - Auth-Check: Authentifizierung, Autorisierung, Session-Management
    - Input-Validation: Injection, XSS, Path-Traversal
    - MCP-Sicherheit: Trust Tiers, Tool-Restriktionen, Output-Validierung
    - Dependency-Check: Bekannte Schwachstellen
 
-2. Compliance Review (Schicht 8 der Execution Order)
+2. Compliance Review (Schicht 10 der Execution Order)
    - DSGVO: Datenminimierung, Zweckbindung, Retention
    - Data-Flow: Wer verarbeitet welche Daten?
    - Consent: Ist die Rechtsgrundlage dokumentiert?
