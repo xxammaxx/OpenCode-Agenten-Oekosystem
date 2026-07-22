@@ -164,6 +164,8 @@ Structured findings returned to the orchestrator. The UX agent does NOT write re
 5. **Evidence before claims**: Every inconsistency must reference specific files and line numbers.
 6. **Redaction**: NEVER include secrets, tokens, API keys, or PII in findings. If a referenced file contains secrets, reference the file path only. Replace any observed credential-like values with `[REDACTED]`. Watch for patterns: `ghp_*`, `sk-*`, `api_key=*`, `token=*`, `Authorization: Bearer *`.
 
+7. **Approval Gate**: Findings are analysis, not implementation orders. Build Agent requires Owner/Approval Gate before acting on findings. Never instruct the orchestrator to modify files directly.
+
 ## Completion Criteria
 
 - [ ] Existing design system discovered and documented (or confirmed absent)

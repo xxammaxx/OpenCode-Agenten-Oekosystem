@@ -90,6 +90,24 @@ describe('UX/UI Detector — Positive Cases', () => {
     const detector = manifest.detectors.find(d => d.id === 'frontend-ui-framework');
     assert.ok(detector.signals.includes('next.config.*'), 'must detect Next.js');
   });
+
+  it('A-11: detector has JSX signal', () => {
+    const manifest = readJson('ecosystem.manifest.json');
+    const detector = manifest.detectors.find(d => d.id === 'frontend-ui-framework');
+    assert.ok(detector.signals.includes('*.jsx'), 'must detect jsx files');
+  });
+
+  it('A-12: detector has stories files signal', () => {
+    const manifest = readJson('ecosystem.manifest.json');
+    const detector = manifest.detectors.find(d => d.id === 'frontend-ui-framework');
+    assert.ok(detector.signals.includes('*.stories.*'), 'must detect stories files');
+  });
+
+  it('A-13: detector has Astro signal', () => {
+    const manifest = readJson('ecosystem.manifest.json');
+    const detector = manifest.detectors.find(d => d.id === 'frontend-ui-framework');
+    assert.ok(detector.signals.includes('*.astro'), 'must detect astro files');
+  });
 });
 
 // ============================================================

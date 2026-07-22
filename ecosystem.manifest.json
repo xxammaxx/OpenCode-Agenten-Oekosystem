@@ -168,8 +168,10 @@
         "*.jsx",
         "*.vue",
         "*.svelte",
+        "*.astro",
         "next.config.*",
         "tailwind.config.*",
+        "astro.config.*",
         ".storybook/",
         "*.stories.*"
       ],
