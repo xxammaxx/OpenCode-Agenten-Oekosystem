@@ -7,7 +7,7 @@ import assert from 'node:assert';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const WORKTREE = process.env.OPCODE_UX_UI_WORKTREE || '/tmp/opencode-ux-ui-20260722T144637Z';
+const WORKTREE = process.env.OPCODE_UX_UI_WORKTREE || process.cwd();
 
 function readJson(path) {
   let raw = readFileSync(join(WORKTREE, path), 'utf-8');
