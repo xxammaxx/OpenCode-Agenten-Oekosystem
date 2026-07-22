@@ -350,6 +350,28 @@ export function buildOpenCodeOverlay({ includeRemoteCI = false } = {}) {
           task: { "*": "deny" },
         },
       },
+      "ux-review-agent": {
+        description: "Analyzes UX flows, UI consistency, and user journeys. Read-only — produces structured, evidence-based findings. Never modifies product files.",
+        mode: "subagent",
+        temperature: 0.0,
+        permission: {
+          edit: "deny",
+          bash: {
+            "*": "deny",
+            "git diff *": "allow",
+            "git log *": "allow",
+            "grep *": "allow",
+            "rg *": "allow",
+          },
+          task: { "*": "deny" },
+          skill: {
+            "ux-flow-review": "allow",
+            "ui-design-system-review": "allow",
+            "audit-trail-enforcer": "allow",
+            "*": "deny",
+          },
+        },
+      },
     },
   }
 }
