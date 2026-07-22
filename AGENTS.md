@@ -104,6 +104,7 @@ The full canonical workflow is defined in [`WORKING-METHOD.md`](WORKING-METHOD.m
 - `compliance-agent` owns DSGVO judgment - never delegates this
 - `review-agent` is leaf node - never delegates to others
 - `research-agent` is leaf node - never delegates to others
+- `ux-review-agent` is leaf node - never delegates to others; read-only analysis only
 
 ## Local Model Mode
 

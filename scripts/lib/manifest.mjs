@@ -111,6 +111,9 @@ export function selectManifestRecommendations(manifest, discovery, options = {})
   const hasGenericPii = discovery.signals.some((signal) => signal.id === "pii-signals")
   const hasTierheim = discovery.signals.some((signal) => signal.id === "tierheim-signals")
   const hasFrontend = discovery.frameworks.includes("playwright") || discovery.frameworks.includes("vite") || files.some((file) => /playwright\.config\./i.test(file))
+  const hasUIFramework = discovery.frameworks.filter((f) => ["react", "vue", "svelte", "next", "astro"].includes(f)).length > 0 ||
+    files.some((file) => /\.(tsx|jsx|vue|svelte)$/i.test(file)) ||
+    files.some((file) => /next\.config\.|tailwind\.config\.|\.storybook\/|\.stories\./i.test(file))
   const hasDatabase = discovery.databases.length > 0 || files.some((file) => /migrations?|schema/i.test(file))
   const hasGithub = discovery.existing.github_remote
 
@@ -131,6 +134,12 @@ export function selectManifestRecommendations(manifest, discovery, options = {})
     "mcp-selection",
     "hermes-handoff",
   )
+
+  if (hasUIFramework) {
+    recommendations.agents.push("ux-review-agent")
+    recommendations.skills.push("ux-flow-review", "ui-design-system-review")
+    recommendations.notes.push("UI framework signals detected (React, Vue, Svelte, Next.js, Tailwind, or Storybook); UX/UI review agent and skills are relevant.")
+  }
 
   if (hasFrontend) {
     recommendations.skills.push("playwright-visual-review")

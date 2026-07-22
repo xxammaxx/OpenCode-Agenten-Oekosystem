@@ -162,6 +162,23 @@
       "recommend": ["run-card", "worktree-safety", "living-truth-mirror"]
     },
     {
+      "id": "frontend-ui-framework",
+      "signals": [
+        "*.tsx",
+        "*.jsx",
+        "*.vue",
+        "*.svelte",
+        "*.astro",
+        "next.config.*",
+        "tailwind.config.*",
+        "astro.config.*",
+        ".storybook/",
+        "*.stories.*"
+      ],
+      "domain": "conditional",
+      "recommend": ["ux-flow-review", "ui-design-system-review", "mcp-selection", "living-truth-mirror"]
+    },
+    {
       "id": "civic-tech-pii",
       "signals": ["consent", "adopter", "donor", "volunteer", "medical", "privacy", "retention"],
       "domain": "conditional",
@@ -234,6 +251,10 @@
         {
           "name": "playwright-agent",
           "description": "Performs visual QA and accessibility checks."
+        },
+        {
+          "name": "ux-review-agent",
+          "description": "Analyzes UX flows, UI consistency, and user journeys. Read-only — produces structured, evidence-based findings. Never modifies product files."
         }
       ],
       "domain_specific": [],
@@ -273,7 +294,9 @@
       "conditional": [
         "mcp-selection",
         "hermes-handoff",
-        "remote-ci-approval-gate"
+        "remote-ci-approval-gate",
+        "ux-flow-review",
+        "ui-design-system-review"
       ],
       "domain_specific": [
         "tierheim-compliance",

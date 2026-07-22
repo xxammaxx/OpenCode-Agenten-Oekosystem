@@ -42,6 +42,7 @@ You delegate to these subagents (and ONLY these):
 - `architecture-agent` — ADR creation, coupling analysis
 - `security-agent` — vulnerability research, PoC reproduction
 - `documentation-agent` — docs, changelog, README updates
+- `ux-review-agent` — UX flow analysis, UI design system consistency review
 
 ### 5. Skills Registry
 
